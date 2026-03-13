@@ -1,3 +1,8 @@
 spring:
   application:
     name: koriai-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/aitestdb
+    username: postgres
+    password: 123
+    driver-class-name: org.postgresql.Driver
