@@ -1,0 +1,10 @@
+openai:
+  mock-enabled: true
+
+jwt:
+  secret: test-secret-key-test-secret-key-test-secret-key
+  access-token-expiration-ms: 3600000
+
+spring:
+  flyway:
+    enabled: false

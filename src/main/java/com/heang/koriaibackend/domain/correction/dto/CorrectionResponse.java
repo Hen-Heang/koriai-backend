@@ -1,0 +1,28 @@
+package com.heang.koriaibackend.domain.correction.dto;
+
+import com.heang.koriaibackend.domain.correction.model.SentenceCorrection;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+
+public record CorrectionResponse(
+        Long id,
+        String originalText,
+        String correctedText,
+        String explanation,
+        List<String> grammarPoints,
+        String modelUsed,
+        OffsetDateTime createdAt
+) {
+    public static CorrectionResponse from(SentenceCorrection correction, List<String> grammarPoints) {
+        return new CorrectionResponse(
+                correction.getId(),
+                correction.getOriginalText(),
+                correction.getCorrectedText(),
+                correction.getExplanation(),
+                grammarPoints,
+                correction.getModelUsed(),
+                correction.getCreatedAt()
+        );
+    }
+}

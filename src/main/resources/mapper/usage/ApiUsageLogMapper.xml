@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.usage.mapper.ApiUsageLogMapper">
+
+    <insert id="insert" parameterType="com.heang.koriaibackend.domain.usage.model.ApiUsageLog"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO api_usage_logs (
+            user_id,
+            model,
+            feature,
+            prompt_tokens,
+            completion_tokens,
+            estimated_cost_usd,
+            response_time_ms
+        ) VALUES (
+            #{userId},
+            #{model},
+            #{feature},
+            #{promptTokens},
+            #{completionTokens},
+            #{estimatedCostUsd},
+            #{responseTimeMs}
+        )
+    </insert>
+</mapper>
