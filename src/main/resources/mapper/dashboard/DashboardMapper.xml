@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.dashboard.mapper.DashboardMapper">
+
+    <select id="countCorrectionsThisWeek" resultType="int">
+        SELECT COUNT(*) FROM sentence_corrections
+        WHERE user_id = #{userId}
+          AND created_at >= NOW() - INTERVAL '7 days'
+    </select>
+
+    <select id="countMessagesThisWeek" resultType="int">
+        SELECT COUNT(*) FROM messages m
+        JOIN conversations c ON m.conversation_id = c.id
+        WHERE c.user_id = #{userId}
+          AND m.role = 'USER'
+          AND m.created_at >= NOW() - INTERVAL '7 days'
+    </select>
+
+    <select id="countDiaryThisWeek" resultType="int">
+        SELECT COUNT(*) FROM diary_entries
+        WHERE user_id = #{userId}
+          AND created_at >= NOW() - INTERVAL '7 days'
+    </select>
+
+    <select id="countTotalCorrections" resultType="int">
+        SELECT COUNT(*) FROM sentence_corrections WHERE user_id = #{userId}
+    </select>
+
+    <select id="countStreakDays" resultType="int">
+        WITH activity_days AS (
+            SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS day
+            FROM sentence_corrections WHERE user_id = #{userId}
+            UNION
+            SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'UTC') AS day
+            FROM messages m JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.user_id = #{userId} AND m.role = 'USER'
+            UNION
+            SELECT DISTINCT entry_date AS day FROM diary_entries WHERE user_id = #{userId}
+        ),
+        numbered AS (
+            SELECT day, ROW_NUMBER() OVER (ORDER BY day DESC) AS rn
+            FROM activity_days
+            WHERE day &lt;= CURRENT_DATE
+        ),
+        grouped AS (
+            SELECT day, rn, (day - CAST(rn AS INTEGER)) AS grp
+            FROM numbered
+        )
+        SELECT COUNT(*) FROM grouped
+        WHERE grp = (SELECT grp FROM grouped ORDER BY day DESC LIMIT 1)
+    </select>
+
+    <select id="getDailyActivity" resultType="map">
+        WITH days AS (
+            SELECT generate_series(
+                CURRENT_DATE - INTERVAL '6 days',
+                CURRENT_DATE,
+                INTERVAL '1 day'
+            )::date AS day
+        ),
+        corrections AS (
+            SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS cnt
+            FROM sentence_corrections WHERE user_id = #{userId}
+              AND created_at >= CURRENT_DATE - INTERVAL '6 days'
+            GROUP BY 1
+        ),
+        messages AS (
+            SELECT DATE(m.created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS cnt
+            FROM messages m JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.user_id = #{userId} AND m.role = 'USER'
+              AND m.created_at >= CURRENT_DATE - INTERVAL '6 days'
+            GROUP BY 1
+        ),
+        diary AS (
+            SELECT entry_date AS day, COUNT(*) AS cnt
+            FROM diary_entries WHERE user_id = #{userId}
+              AND entry_date >= CURRENT_DATE - INTERVAL '6 days'
+            GROUP BY 1
+        )
+        SELECT
+            TO_CHAR(d.day, 'Dy') AS day,
+            COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) * 2 + COALESCE(di.cnt, 0) * 5 AS minutes,
+            CASE WHEN COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) > 0
+                 THEN LEAST(100, 70 + COALESCE(cor.cnt, 0) * 5)
+                 ELSE 0 END AS accuracy
+        FROM days d
+        LEFT JOIN messages m ON m.day = d.day
+        LEFT JOIN corrections cor ON cor.day = d.day
+        LEFT JOIN diary di ON di.day = d.day
+        ORDER BY d.day ASC
+    </select>
+
+</mapper>

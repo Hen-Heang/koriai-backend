@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.vocab.mapper.VocabCardMapper">
+
+    <resultMap id="VocabCardResultMap" type="com.heang.koriaibackend.domain.vocab.model.VocabCard">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="category" column="category"/>
+        <result property="term" column="term"/>
+        <result property="meaning" column="meaning"/>
+        <result property="example" column="example"/>
+        <result property="mastery" column="mastery"/>
+        <result property="nextReviewDate" column="next_review_date"/>
+        <result property="tags" column="tags"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.heang.koriaibackend.domain.vocab.model.VocabCard"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vocab_cards (user_id, category, term, meaning, example, mastery, next_review_date, tags)
+        VALUES (#{userId}, #{category}, #{term}, #{meaning}, #{example}, #{mastery}, CURRENT_DATE, CAST(#{tags} AS jsonb))
+    </insert>
+
+    <select id="findByUserId" resultMap="VocabCardResultMap">
+        SELECT id, user_id, category, term, meaning, example, mastery, next_review_date, tags::text, created_at
+        FROM vocab_cards
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findDueByUserId" resultMap="VocabCardResultMap">
+        SELECT id, user_id, category, term, meaning, example, mastery, next_review_date, tags::text, created_at
+        FROM vocab_cards
+        WHERE user_id = #{userId}
+          AND next_review_date &lt;= CURRENT_DATE
+        ORDER BY next_review_date ASC
+    </select>
+
+    <update id="updateMastery">
+        UPDATE vocab_cards
+        SET mastery = #{mastery},
+            next_review_date = CAST(#{nextReviewDate} AS date)
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+</mapper>

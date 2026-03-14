@@ -31,6 +31,22 @@ public final class PromptTemplates {
                 """.formatted(text);
     }
 
+    public static String vocabGenerationPrompt(String category, String level, int count) {
+        return """
+                You are a Korean vocabulary teacher.
+                Generate %d Korean vocabulary flashcards for the category "%s" suitable for a %s level learner.
+                Return ONLY valid JSON array with this shape (no extra text):
+                [
+                  {
+                    "term": "Korean word or phrase",
+                    "meaning": "English meaning",
+                    "example": "Short Korean example sentence",
+                    "tags": ["tag1", "tag2"]
+                  }
+                ]
+                """.formatted(count, category, level);
+    }
+
     public static String diaryFeedbackPrompt(String text) {
         return """
                 You are a Korean diary coach.
