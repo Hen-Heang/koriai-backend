@@ -8,6 +8,7 @@ import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;
+import com.heang.koriaibackend.domain.vocab.dto.SaveVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.mapper.VocabCardMapper;
 import com.heang.koriaibackend.domain.vocab.model.VocabCard;
@@ -43,6 +44,21 @@ public class VocabService {
         return vocabCardMapper.findDueByUserId(userId).stream()
                 .map(VocabItemResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public VocabItemResponse saveManual(Long userId, SaveVocabRequest request) {
+        VocabCard card = VocabCard.builder()
+                .userId(userId)
+                .category(normalizeCategory(request.category()))
+                .term(request.term().trim())
+                .meaning(request.meaning().trim())
+                .example(hasText(request.example()) ? request.example().trim() : null)
+                .mastery(0)
+                .tags("[]")
+                .build();
+        vocabCardMapper.insert(card);
+        return VocabItemResponse.from(card);
     }
 
     @Transactional
@@ -98,5 +114,13 @@ public class VocabService {
         } catch (JsonProcessingException e) {
             return Collections.emptyList();
         }
+    }
+
+    private String normalizeCategory(String category) {
+        return hasText(category) ? category.trim() : "Saved phrases";
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

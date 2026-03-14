@@ -1,13 +1,16 @@
 package com.heang.koriaibackend.domain.vocab.controller;
 
 import com.heang.koriaibackend.common.api.ApiResponse;
+import com.heang.koriaibackend.domain.vocab.dto.SaveVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.service.VocabService;
 import com.heang.koriaibackend.security.util.SecurityUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +27,11 @@ public class VocabController {
     @GetMapping
     public ApiResponse<List<VocabItemResponse>> getSavedWords() {
         return ApiResponse.success(vocabService.getSavedWords(SecurityUtils.currentUserId()));
+    }
+
+    @PostMapping("/save")
+    public ApiResponse<VocabItemResponse> save(@Valid @RequestBody SaveVocabRequest request) {
+        return ApiResponse.success(vocabService.saveManual(SecurityUtils.currentUserId(), request));
     }
 
     @GetMapping("/review/due")
