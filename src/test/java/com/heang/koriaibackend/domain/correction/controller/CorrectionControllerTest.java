@@ -1,6 +1,7 @@
 package com.heang.koriaibackend.domain.correction.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heang.koriaibackend.domain.correction.dto.CorrectionChange;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionResponse;
 import com.heang.koriaibackend.domain.correction.service.CorrectionService;
 import com.heang.koriaibackend.security.jwt.JwtAuthenticationFilter;
@@ -66,6 +67,7 @@ class CorrectionControllerTest {
                 "안녕하세요",
                 "Spacing corrected",
                 List.of("Spacing"),
+                List.of(new CorrectionChange(" 하", "하", "ha", "spacing")),
                 "gpt-5-mini",
                 OffsetDateTime.now()
         );
@@ -87,6 +89,7 @@ class CorrectionControllerTest {
                 "저는 학생입니다",
                 "Particle spacing fixed",
                 List.of("Particles"),
+                List.of(new CorrectionChange(" 는", "는", "topic particle", "particle spacing")),
                 "gpt-5-mini",
                 OffsetDateTime.now()
         );

@@ -1,6 +1,7 @@
 package com.heang.koriaibackend.domain.diary.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heang.koriaibackend.domain.diary.dto.DiaryChange;
 import com.heang.koriaibackend.domain.diary.dto.DiaryEntryResponse;
 import com.heang.koriaibackend.domain.diary.service.DiaryService;
 import com.heang.koriaibackend.security.jwt.JwtAuthenticationFilter;
@@ -68,6 +69,8 @@ class DiaryControllerTest {
                 "Polite ending improved",
                 4,
                 "happy",
+                List.of("Politeness"),
+                List.of(new DiaryChange("좋다", "좋아요", "to be good", "polite ending")),
                 OffsetDateTime.now()
         );
         when(diaryService.createOrUpdate(eq(1L), eq(LocalDate.of(2026, 3, 13)), eq("오늘은 기분이 좋다"))).thenReturn(response);
@@ -93,6 +96,8 @@ class DiaryControllerTest {
                 "Nice diary",
                 4,
                 "happy",
+                List.of("Politeness"),
+                List.of(new DiaryChange("좋다", "좋아요", "to be good", "polite ending")),
                 OffsetDateTime.now()
         );
         when(diaryService.getByMonth(1L, "2026-03")).thenReturn(List.of(response));

@@ -10,6 +10,7 @@ public record VocabItemResponse(
         String term,
         String meaning,
         String example,
+        String exampleTranslation,
         int mastery,
         String nextReview,
         List<String> tags
@@ -21,6 +22,7 @@ public record VocabItemResponse(
                 card.getTerm(),
                 card.getMeaning(),
                 card.getExample(),
+                card.getExampleTranslation(),
                 card.getMastery(),
                 card.getNextReviewDate() != null ? card.getNextReviewDate().toString() : "-",
                 List.of()

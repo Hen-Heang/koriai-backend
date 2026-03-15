@@ -106,6 +106,7 @@ public class VocabService {
                         .term(node.path("term").asText(""))
                         .meaning(node.path("meaning").asText(""))
                         .example(node.path("example").asText(null))
+                        .exampleTranslation(node.path("exampleTranslation").asText(null))
                         .mastery(0)
                         .tags(tagsJson)
                         .build());

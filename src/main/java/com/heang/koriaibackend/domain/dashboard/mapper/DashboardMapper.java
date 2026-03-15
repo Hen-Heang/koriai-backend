@@ -12,6 +12,7 @@ public interface DashboardMapper {
     int countMessagesThisWeek(@Param("userId") Long userId);
     int countDiaryThisWeek(@Param("userId") Long userId);
     int countStreakDays(@Param("userId") Long userId);
+    boolean hasActivityToday(@Param("userId") Long userId);
     int countTotalCorrections(@Param("userId") Long userId);
     List<Map<String, Object>> getDailyActivity(@Param("userId") Long userId);
 }

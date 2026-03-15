@@ -13,6 +13,8 @@
         <result property="feedback" column="feedback"/>
         <result property="wordCount" column="word_count"/>
         <result property="mood" column="mood"/>
+        <result property="grammarPoints" column="grammar_points"/>
+        <result property="changes" column="changes"/>
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
@@ -24,7 +26,9 @@
             corrected_text,
             feedback,
             word_count,
-            mood
+            mood,
+            grammar_points,
+            changes
         ) VALUES (
             #{userId},
             #{entryDate},
@@ -32,18 +36,22 @@
             #{correctedText},
             #{feedback},
             #{wordCount},
-            #{mood}
+            #{mood},
+            CAST(#{grammarPoints} AS jsonb),
+            CAST(#{changes} AS jsonb)
         )
         ON CONFLICT (user_id, entry_date) DO UPDATE
         SET original_text = EXCLUDED.original_text,
             corrected_text = EXCLUDED.corrected_text,
             feedback = EXCLUDED.feedback,
             word_count = EXCLUDED.word_count,
-            mood = EXCLUDED.mood
+            mood = EXCLUDED.mood,
+            grammar_points = EXCLUDED.grammar_points,
+            changes = EXCLUDED.changes
     </insert>
 
     <select id="findByUserIdAndMonth" resultMap="DiaryEntryResultMap">
-        SELECT id, user_id, entry_date, original_text, corrected_text, feedback, word_count, mood, created_at
+        SELECT id, user_id, entry_date, original_text, corrected_text, feedback, word_count, mood, grammar_points, changes, created_at
         FROM diary_entries
         WHERE user_id = #{userId}
           AND entry_date >= #{monthStart}

@@ -40,16 +40,34 @@
             SELECT DISTINCT entry_date AS day FROM diary_entries WHERE user_id = #{userId}
         ),
         numbered AS (
-            SELECT day, ROW_NUMBER() OVER (ORDER BY day DESC) AS rn
+            SELECT day, ROW_NUMBER() OVER (ORDER BY day ASC) AS rn
             FROM activity_days
             WHERE day &lt;= CURRENT_DATE
         ),
         grouped AS (
-            SELECT day, rn, (day - CAST(rn AS INTEGER)) AS grp
+            SELECT day, (day - CAST(rn - 1 AS INTEGER)) AS grp
             FROM numbered
         )
-        SELECT COUNT(*) FROM grouped
-        WHERE grp = (SELECT grp FROM grouped ORDER BY day DESC LIMIT 1)
+        SELECT CASE
+            WHEN (SELECT MAX(day) FROM activity_days WHERE day &lt;= CURRENT_DATE) &gt;= CURRENT_DATE - 1
+            THEN (SELECT COUNT(*) FROM grouped
+                  WHERE grp = (SELECT grp FROM grouped ORDER BY day DESC LIMIT 1))
+            ELSE 0
+        END
+    </select>
+
+    <select id="hasActivityToday" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM sentence_corrections
+            WHERE user_id = #{userId} AND DATE(created_at AT TIME ZONE 'UTC') = CURRENT_DATE
+            UNION ALL
+            SELECT 1 FROM messages m JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.user_id = #{userId} AND m.role = 'USER'
+              AND DATE(m.created_at AT TIME ZONE 'UTC') = CURRENT_DATE
+            UNION ALL
+            SELECT 1 FROM diary_entries
+            WHERE user_id = #{userId} AND entry_date = CURRENT_DATE
+        )
     </select>
 
     <select id="getDailyActivity" resultType="map">

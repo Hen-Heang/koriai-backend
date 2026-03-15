@@ -23,5 +23,7 @@ public class DiaryEntry {
     private String feedback;
     private Integer wordCount;
     private String mood;
+    private String grammarPoints;
+    private String changes;
     private OffsetDateTime createdAt;
 }

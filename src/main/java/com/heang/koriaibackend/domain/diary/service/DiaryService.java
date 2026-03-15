@@ -7,6 +7,7 @@ import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.domain.diary.dto.DiaryChange;
 import com.heang.koriaibackend.domain.diary.dto.DiaryEntryResponse;
 import com.heang.koriaibackend.domain.diary.mapper.DiaryEntryMapper;
 import com.heang.koriaibackend.domain.diary.model.DiaryEntry;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -38,6 +40,8 @@ public class DiaryService {
         String prompt = PromptTemplates.diaryFeedbackPrompt(originalText);
         OpenAiResult result = openAiService.generate(prompt, model);
         DiaryPayload payload = parsePayload(result.content());
+        String grammarPointsJson = toJson(payload.grammarPoints());
+        String changesJson = toJson(payload.changes());
 
         DiaryEntry entry = DiaryEntry.builder()
                 .userId(userId)
@@ -47,6 +51,8 @@ public class DiaryService {
                 .feedback(payload.feedback())
                 .wordCount(countWords(originalText))
                 .mood(payload.mood())
+                .grammarPoints(grammarPointsJson)
+                .changes(changesJson)
                 .build();
         diaryEntryMapper.upsert(entry);
         apiUsageLogService.log(userId, "DIARY_FEEDBACK", result);
@@ -55,7 +61,7 @@ public class DiaryService {
                 .stream()
                 .filter(it -> it.getEntryDate().equals(date))
                 .findFirst()
-                .map(DiaryEntryResponse::from)
+                .map(it -> DiaryEntryResponse.from(it, parseStringList(it.getGrammarPoints()), parseChangeList(it.getChanges())))
                 .orElseThrow(() -> new BusinessException(Code.SYSTEM_ERROR, "Failed to load diary entry"));
     }
 
@@ -69,7 +75,7 @@ public class DiaryService {
         LocalDate start = yearMonth.atDay(1);
         LocalDate endExclusive = yearMonth.plusMonths(1).atDay(1);
         return diaryEntryMapper.findByUserIdAndMonth(userId, start, endExclusive).stream()
-                .map(DiaryEntryResponse::from)
+                .map(it -> DiaryEntryResponse.from(it, parseStringList(it.getGrammarPoints()), parseChangeList(it.getChanges())))
                 .toList();
     }
 
@@ -77,7 +83,33 @@ public class DiaryService {
         try {
             return objectMapper.readValue(json, DiaryPayload.class);
         } catch (JsonProcessingException e) {
-            return new DiaryPayload(json, "Could not parse diary feedback payload", null);
+            return new DiaryPayload(json, "Could not parse diary feedback payload", null, Collections.emptyList(), Collections.emptyList());
+        }
+    }
+
+    private List<String> parseStringList(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (JsonProcessingException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<DiaryChange> parseChangeList(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, DiaryChange.class));
+        } catch (JsonProcessingException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private <T> String toJson(List<T> values) {
+        try {
+            return objectMapper.writeValueAsString(values);
+        } catch (JsonProcessingException e) {
+            return "[]";
         }
     }
 
@@ -89,6 +121,6 @@ public class DiaryService {
         return trimmed.split("\\s+").length;
     }
 
-    private record DiaryPayload(String correctedText, String feedback, String mood) {
+    private record DiaryPayload(String correctedText, String feedback, String mood, List<String> grammarPoints, List<DiaryChange> changes) {
     }
 }

@@ -11,6 +11,7 @@
         <result property="term" column="term"/>
         <result property="meaning" column="meaning"/>
         <result property="example" column="example"/>
+        <result property="exampleTranslation" column="example_translation"/>
         <result property="mastery" column="mastery"/>
         <result property="nextReviewDate" column="next_review_date"/>
         <result property="tags" column="tags"/>
@@ -19,19 +20,19 @@
 
     <insert id="insert" parameterType="com.heang.koriaibackend.domain.vocab.model.VocabCard"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO vocab_cards (user_id, category, term, meaning, example, mastery, next_review_date, tags)
-        VALUES (#{userId}, #{category}, #{term}, #{meaning}, #{example}, #{mastery}, CURRENT_DATE, CAST(#{tags} AS jsonb))
+        INSERT INTO vocab_cards (user_id, category, term, meaning, example, example_translation, mastery, next_review_date, tags)
+        VALUES (#{userId}, #{category}, #{term}, #{meaning}, #{example}, #{exampleTranslation}, #{mastery}, CURRENT_DATE, CAST(#{tags} AS jsonb))
     </insert>
 
     <select id="findByUserId" resultMap="VocabCardResultMap">
-        SELECT id, user_id, category, term, meaning, example, mastery, next_review_date, tags::text, created_at
+        SELECT id, user_id, category, term, meaning, example, example_translation, mastery, next_review_date, tags::text, created_at
         FROM vocab_cards
         WHERE user_id = #{userId}
         ORDER BY created_at DESC
     </select>
 
     <select id="findDueByUserId" resultMap="VocabCardResultMap">
-        SELECT id, user_id, category, term, meaning, example, mastery, next_review_date, tags::text, created_at
+        SELECT id, user_id, category, term, meaning, example, example_translation, mastery, next_review_date, tags::text, created_at
         FROM vocab_cards
         WHERE user_id = #{userId}
           AND next_review_date &lt;= CURRENT_DATE

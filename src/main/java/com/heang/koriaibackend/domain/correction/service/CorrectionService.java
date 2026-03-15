@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.ai.OpenAiService;
 import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.domain.correction.dto.CorrectionChange;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionResponse;
 import com.heang.koriaibackend.domain.correction.mapper.SentenceCorrectionMapper;
 import com.heang.koriaibackend.domain.correction.model.SentenceCorrection;
@@ -26,7 +27,7 @@ public class CorrectionService {
     private final ApiUsageLogService apiUsageLogService;
     private final ObjectMapper objectMapper;
 
-    @Value("${openai.model:gpt-5-mini}")
+    @Value("${openai.model:gpt-4o-mini}")
     private String model;
 
     @Transactional
@@ -36,6 +37,7 @@ public class CorrectionService {
 
         CorrectionPayload payload = parseCorrectionPayload(result.content(), text);
         String grammarPointsJson = toJson(payload.grammarPoints());
+        String changesJson = toJson(payload.changes());
 
         SentenceCorrection correction = SentenceCorrection.builder()
                 .userId(userId)
@@ -43,17 +45,18 @@ public class CorrectionService {
                 .correctedText(payload.correctedText())
                 .explanation(payload.explanation())
                 .grammarPoints(grammarPointsJson)
+                .changes(changesJson)
                 .modelUsed(result.model())
                 .build();
         sentenceCorrectionMapper.insert(correction);
         apiUsageLogService.log(userId, "CORRECTION", result);
 
-        return CorrectionResponse.from(correction, payload.grammarPoints());
+        return CorrectionResponse.from(correction, payload.grammarPoints(), payload.changes());
     }
 
     public List<CorrectionResponse> history(Long userId, int limit) {
         return sentenceCorrectionMapper.findByUserId(userId, limit).stream()
-                .map(it -> CorrectionResponse.from(it, parseStringList(it.getGrammarPoints())))
+                .map(it -> CorrectionResponse.from(it, parseStringList(it.getGrammarPoints()), parseChangeList(it.getChanges())))
                 .toList();
     }
 
@@ -61,7 +64,7 @@ public class CorrectionService {
         try {
             return objectMapper.readValue(json, CorrectionPayload.class);
         } catch (JsonProcessingException e) {
-            return new CorrectionPayload(originalText, "Could not parse correction payload", Collections.emptyList());
+            return new CorrectionPayload(originalText, "Could not parse correction payload", Collections.emptyList(), Collections.emptyList());
         }
     }
 
@@ -76,7 +79,18 @@ public class CorrectionService {
         }
     }
 
-    private String toJson(List<String> values) {
+    private List<CorrectionChange> parseChangeList(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, CorrectionChange.class));
+        } catch (JsonProcessingException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private <T> String toJson(List<T> values) {
         try {
             return objectMapper.writeValueAsString(values);
         } catch (JsonProcessingException e) {
@@ -84,6 +98,6 @@ public class CorrectionService {
         }
     }
 
-    private record CorrectionPayload(String correctedText, String explanation, List<String> grammarPoints) {
+    private record CorrectionPayload(String correctedText, String explanation, List<String> grammarPoints, List<CorrectionChange> changes) {
     }
 }

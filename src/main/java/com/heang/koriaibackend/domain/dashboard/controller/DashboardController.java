@@ -4,6 +4,7 @@ import com.heang.koriaibackend.common.api.ApiResponse;
 import com.heang.koriaibackend.domain.dashboard.dto.DashboardResponse;
 import com.heang.koriaibackend.domain.dashboard.dto.DashboardStats;
 import com.heang.koriaibackend.domain.dashboard.dto.ProgressPoint;
+import com.heang.koriaibackend.domain.dashboard.dto.StreakResponse;
 import com.heang.koriaibackend.domain.dashboard.mapper.DashboardMapper;
 import com.heang.koriaibackend.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,13 @@ public class DashboardController {
                 .toList();
 
         return ApiResponse.success(new DashboardResponse(stats, chartData));
+    }
+
+    @GetMapping("/streak")
+    public ApiResponse<StreakResponse> getStreak() {
+        Long userId = SecurityUtils.currentUserId();
+        int streakDays = dashboardMapper.countStreakDays(userId);
+        boolean activityToday = dashboardMapper.hasActivityToday(userId);
+        return ApiResponse.success(new StreakResponse(streakDays, activityToday));
     }
 }

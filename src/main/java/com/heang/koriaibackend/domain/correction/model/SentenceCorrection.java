@@ -20,6 +20,7 @@ public class SentenceCorrection {
     private String correctedText;
     private String explanation;
     private String grammarPoints;
+    private String changes;
     private String modelUsed;
     private OffsetDateTime createdAt;
 }

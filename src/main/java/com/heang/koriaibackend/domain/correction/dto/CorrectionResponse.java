@@ -11,16 +11,18 @@ public record CorrectionResponse(
         String correctedText,
         String explanation,
         List<String> grammarPoints,
+        List<CorrectionChange> changes,
         String modelUsed,
         OffsetDateTime createdAt
 ) {
-    public static CorrectionResponse from(SentenceCorrection correction, List<String> grammarPoints) {
+    public static CorrectionResponse from(SentenceCorrection correction, List<String> grammarPoints, List<CorrectionChange> changes) {
         return new CorrectionResponse(
                 correction.getId(),
                 correction.getOriginalText(),
                 correction.getCorrectedText(),
                 correction.getExplanation(),
                 grammarPoints,
+                changes,
                 correction.getModelUsed(),
                 correction.getCreatedAt()
         );

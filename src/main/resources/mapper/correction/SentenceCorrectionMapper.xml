@@ -11,6 +11,7 @@
         <result property="correctedText" column="corrected_text"/>
         <result property="explanation" column="explanation"/>
         <result property="grammarPoints" column="grammar_points"/>
+        <result property="changes" column="changes"/>
         <result property="modelUsed" column="model_used"/>
         <result property="createdAt" column="created_at"/>
     </resultMap>
@@ -23,6 +24,7 @@
             corrected_text,
             explanation,
             grammar_points,
+            changes,
             model_used
         ) VALUES (
             #{userId},
@@ -30,12 +32,13 @@
             #{correctedText},
             #{explanation},
             CAST(#{grammarPoints} AS jsonb),
+            CAST(#{changes} AS jsonb),
             #{modelUsed}
         )
     </insert>
 
     <select id="findByUserId" resultMap="SentenceCorrectionResultMap">
-        SELECT id, user_id, original_text, corrected_text, explanation, grammar_points, model_used, created_at
+        SELECT id, user_id, original_text, corrected_text, explanation, grammar_points, changes, model_used, created_at
         FROM sentence_corrections
         WHERE user_id = #{userId}
         ORDER BY created_at DESC

@@ -69,6 +69,7 @@ class VocabControllerTest {
                 "안녕하세요",
                 "Polite hello",
                 "안녕하세요, 처음 뵙겠습니다.",
+                "Hello, nice to meet you.",
                 0,
                 "2026-03-14",
                 List.of()
