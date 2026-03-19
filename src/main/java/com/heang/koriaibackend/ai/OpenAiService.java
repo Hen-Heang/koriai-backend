@@ -2,6 +2,9 @@ package com.heang.koriaibackend.ai;
 
 import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.openai.client.OpenAIClient;
+import com.openai.core.http.StreamResponse;
+import com.openai.models.chat.completions.ChatCompletionChunk;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseOutputItem;
@@ -10,13 +13,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.function.Consumer;
+
 @Service
 @RequiredArgsConstructor
 public class OpenAiService {
 
     private final OpenAIClient client;
 
-    @Value("${openai.model:gpt-5-mini}")
+    @Value("${openai.model:gpt-4o-mini}")
     private String defaultModel;
 
     @Value("${openai.mock-enabled:false}")
@@ -66,5 +71,30 @@ public class OpenAiService {
         }
 
         return new OpenAiResult(text.toString(), selectedModel, promptTokens, completionTokens, elapsed);
+    }
+
+    public void generateStream(String prompt, String model, Consumer<String> onToken) {
+        String selectedModel = (model == null || model.isBlank()) ? defaultModel : model;
+
+        if (mockEnabled) {
+            String mockText = "Mock streaming response: " + prompt.substring(0, Math.min(60, prompt.length()));
+            for (String word : mockText.split("(?<=\\s)")) {
+                onToken.accept(word);
+            }
+            return;
+        }
+
+        ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
+                .model(selectedModel)
+                .addUserMessage(prompt)
+                .build();
+
+        try (StreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params)) {
+            stream.stream().forEach(chunk ->
+                    chunk.choices().forEach(choice ->
+                            choice.delta().content().ifPresent(onToken)
+                    )
+            );
+        }
     }
 }

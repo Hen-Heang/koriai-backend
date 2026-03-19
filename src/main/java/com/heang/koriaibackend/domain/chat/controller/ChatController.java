@@ -10,6 +10,7 @@ import com.heang.koriaibackend.domain.chat.service.ChatService;
 import com.heang.koriaibackend.security.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -39,6 +41,12 @@ public class ChatController {
     public ApiResponse<ChatSendResponse> sendMessage(@Valid @RequestBody SendChatMessageRequest req) {
         Long userId = SecurityUtils.currentUserId();
         return ApiResponse.success(chatService.sendMessage(userId, req.message(), req.conversationId()));
+    }
+
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamMessage(@Valid @RequestBody SendChatMessageRequest req) {
+        Long userId = SecurityUtils.currentUserId();
+        return chatService.streamMessage(userId, req.message(), req.conversationId());
     }
 
     @GetMapping("/conversations")
