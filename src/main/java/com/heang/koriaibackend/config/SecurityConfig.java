@@ -46,25 +46,40 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
+                // Configure CORS (Cross-Origin Resource Sharing) using the corsConfigurationSource bean.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Disable CSRF (Cross-Site Request Forgery) protection. This is common for stateless APIs.
                 .csrf(AbstractHttpConfigurer::disable)
+                // Set the session management policy to STATELESS. This means no sessions will be created or used by Spring Security.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Configure exception handling, specifically for authentication entry points.
                 .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> {
+                    // If the response has already been committed, do nothing.
                     if (response.isCommitted()) return;
+                    // Set the HTTP status to 401 Unauthorized.
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    // Set the content type to application/json.
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    // Create a standardized error response body.
                     ApiResponse<Map<String, String>> body =
                             ApiResponse.error(Code.AUTHENTICATION_FAILED, Map.of("message", "Unauthorized"));
+                    // Write the error response to the response writer.
                     response.getWriter().write(new ObjectMapper().writeValueAsString(body));
                 }))
+                // Configure authorization for HTTP requests.
                 .authorizeHttpRequests(auth -> auth
+                        // Permit all requests of type ASYNC.
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
+                        // Permit all requests to /api/auth/**, /api/health, and /error endpoints.
                         .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
+                        // Any other request must be authenticated.
                         .anyRequest().authenticated())
+                // Add the custom JWT authentication filter before the standard UsernamePasswordAuthenticationFilter.
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
+        // Build the SecurityFilterChain.
         return http.build();
     }
 
