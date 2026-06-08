@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.dailyphrase.mapper.DailyPhraseMapper">
+
+    <resultMap id="DailyPhraseResultMap" type="com.heang.koriaibackend.domain.dailyphrase.model.DailyPhrase">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="phraseDate" column="phrase_date"/>
+        <result property="phraseKr" column="phrase_kr"/>
+        <result property="meaningEn" column="meaning_en"/>
+        <result property="romanization" column="romanization"/>
+        <result property="whenToUse" column="when_to_use"/>
+        <result property="formalityLevel" column="formality_level"/>
+        <result property="similarExpressions" column="similar_expressions"/>
+        <result property="learned" column="learned"/>
+        <result property="modelUsed" column="model_used"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.heang.koriaibackend.domain.dailyphrase.model.DailyPhrase"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO daily_phrases (user_id, phrase_date, phrase_kr, meaning_en, romanization, when_to_use, formality_level, similar_expressions, learned, model_used)
+        VALUES (#{userId}, CURRENT_DATE, #{phraseKr}, #{meaningEn}, #{romanization}, #{whenToUse}, #{formalityLevel}, CAST(#{similarExpressions} AS jsonb), #{learned}, #{modelUsed})
+    </insert>
+
+    <select id="findByUserAndDate" resultMap="DailyPhraseResultMap">
+        SELECT id, user_id, phrase_date, phrase_kr, meaning_en, romanization, when_to_use, formality_level,
+               similar_expressions::text AS similar_expressions, learned, model_used, created_at
+        FROM daily_phrases
+        WHERE user_id = #{userId}
+          AND phrase_date = #{phraseDate}
+    </select>
+
+    <select id="findByIdAndUser" resultMap="DailyPhraseResultMap">
+        SELECT id, user_id, phrase_date, phrase_kr, meaning_en, romanization, when_to_use, formality_level,
+               similar_expressions::text AS similar_expressions, learned, model_used, created_at
+        FROM daily_phrases
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </select>
+
+    <select id="findByUserId" resultMap="DailyPhraseResultMap">
+        SELECT id, user_id, phrase_date, phrase_kr, meaning_en, romanization, when_to_use, formality_level,
+               similar_expressions::text AS similar_expressions, learned, model_used, created_at
+        FROM daily_phrases
+        WHERE user_id = #{userId}
+        ORDER BY phrase_date DESC
+    </select>
+
+    <select id="findRecentPhrases" resultType="java.lang.String">
+        SELECT phrase_kr
+        FROM daily_phrases
+        WHERE user_id = #{userId}
+        ORDER BY phrase_date DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateLearned">
+        UPDATE daily_phrases
+        SET learned = #{learned}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+</mapper>

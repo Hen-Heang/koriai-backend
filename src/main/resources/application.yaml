@@ -19,7 +19,7 @@ openai:
   api-key: ${OPENAI_API_KEY:}
   base-url: https://api.openai.com/v1
   model: gpt-4o-mini
-  mock-enabled: false
+  mock-enabled: ${OPENAI_MOCK_ENABLED:false}
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml

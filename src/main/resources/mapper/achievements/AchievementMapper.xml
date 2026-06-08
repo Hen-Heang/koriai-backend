@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.achievements.mapper.AchievementMapper">
+
+    <resultMap id="AchievementResultMap" type="com.heang.koriaibackend.domain.achievements.model.Achievement">
+        <id property="code" column="code"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="icon" column="icon"/>
+        <result property="category" column="category"/>
+        <result property="xp" column="xp"/>
+        <result property="metric" column="metric"/>
+        <result property="threshold" column="threshold"/>
+        <result property="sortOrder" column="sort_order"/>
+    </resultMap>
+
+    <resultMap id="UserAchievementResultMap" type="com.heang.koriaibackend.domain.achievements.model.UserAchievement">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="achievementCode" column="achievement_code"/>
+        <result property="unlockedAt" column="unlocked_at"/>
+    </resultMap>
+
+    <select id="findCatalog" resultMap="AchievementResultMap">
+        SELECT code, title, description, icon, category, xp, metric, threshold, sort_order
+        FROM achievements
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="findUnlockedByUser" resultMap="UserAchievementResultMap">
+        SELECT id, user_id, achievement_code, unlocked_at
+        FROM user_achievements
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insertUnlocked">
+        INSERT INTO user_achievements (user_id, achievement_code)
+        VALUES (#{userId}, #{code})
+        ON CONFLICT (user_id, achievement_code) DO NOTHING
+    </insert>
+
+    <select id="countVocab" resultType="int">
+        SELECT COUNT(*) FROM vocab_cards WHERE user_id = #{userId}
+    </select>
+
+    <select id="countCorrections" resultType="int">
+        SELECT COUNT(*) FROM sentence_corrections WHERE user_id = #{userId}
+    </select>
+
+    <select id="countDiary" resultType="int">
+        SELECT COUNT(*) FROM diary_entries WHERE user_id = #{userId}
+    </select>
+
+    <select id="countChatMessages" resultType="int">
+        SELECT COUNT(*) FROM messages m
+        JOIN conversations c ON m.conversation_id = c.id
+        WHERE c.user_id = #{userId}
+          AND m.role = 'USER'
+    </select>
+
+</mapper>
