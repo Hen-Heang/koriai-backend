@@ -49,10 +49,6 @@
         SELECT COUNT(*) FROM sentence_corrections WHERE user_id = #{userId}
     </select>
 
-    <select id="countDiary" resultType="int">
-        SELECT COUNT(*) FROM diary_entries WHERE user_id = #{userId}
-    </select>
-
     <select id="countChatMessages" resultType="int">
         SELECT COUNT(*) FROM messages m
         JOIN conversations c ON m.conversation_id = c.id

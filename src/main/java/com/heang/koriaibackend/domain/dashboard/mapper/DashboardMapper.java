@@ -10,7 +10,6 @@ import java.util.Map;
 public interface DashboardMapper {
     int countCorrectionsThisWeek(@Param("userId") Long userId);
     int countMessagesThisWeek(@Param("userId") Long userId);
-    int countDiaryThisWeek(@Param("userId") Long userId);
     int countStreakDays(@Param("userId") Long userId);
     boolean hasActivityToday(@Param("userId") Long userId);
     int countTotalCorrections(@Param("userId") Long userId);

@@ -19,7 +19,5 @@ public interface AchievementMapper {
 
     int countCorrections(@Param("userId") Long userId);
 
-    int countDiary(@Param("userId") Long userId);
-
     int countChatMessages(@Param("userId") Long userId);
 }

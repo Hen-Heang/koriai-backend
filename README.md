@@ -114,16 +114,6 @@ data: {"message": "Streaming failed"}
 
 ---
 
-### Diary `/api/diary`
-
-| Method | Path | Body / Params | Description |
-|--------|------|--------------|-------------|
-| POST | `/` | `{entryDate, originalText}` | Create or update diary entry with AI feedback |
-| GET | `/` | `?month=2026-03` | Get all entries for a month |
-
-**Response includes:** `correctedText`, `feedback`, `mood`, `grammarPoints[]`, `changes[]`
-
----
 
 ### Vocabulary `/api/vocab`
 
@@ -197,11 +187,6 @@ id, conversationId, role (USER | ASSISTANT), content, tokensUsed, createdAt
 id, userId, originalText, correctedText, explanation, grammarPoints (JSON), changes (JSON), modelUsed, createdAt
 ```
 
-### DiaryEntry
-```
-id, userId, entryDate, originalText, correctedText, feedback, mood, wordCount, grammarPoints (JSON), changes (JSON), createdAt
-```
-
 ### VocabCard
 ```
 id, userId, category, term, meaning, example, exampleTranslation, mastery (0–5), nextReviewDate, tags, createdAt
@@ -229,7 +214,6 @@ src/
 │   │   │   ├── conversations/     # Conversation CRUD
 │   │   │   ├── correction/        # Grammar correction
 │   │   │   ├── dashboard/         # Progress + streak
-│   │   │   ├── diary/             # Diary entries + AI feedback
 │   │   │   ├── health/            # Health check
 │   │   │   ├── messages/          # Message CRUD
 │   │   │   ├── scenarios/         # Hardcoded learning scenarios

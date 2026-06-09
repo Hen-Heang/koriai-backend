@@ -18,12 +18,6 @@
           AND m.created_at >= NOW() - INTERVAL '7 days'
     </select>
 
-    <select id="countDiaryThisWeek" resultType="int">
-        SELECT COUNT(*) FROM diary_entries
-        WHERE user_id = #{userId}
-          AND created_at >= NOW() - INTERVAL '7 days'
-    </select>
-
     <select id="countTotalCorrections" resultType="int">
         SELECT COUNT(*) FROM sentence_corrections WHERE user_id = #{userId}
     </select>
@@ -36,8 +30,6 @@
             SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'UTC') AS day
             FROM messages m JOIN conversations c ON m.conversation_id = c.id
             WHERE c.user_id = #{userId} AND m.role = 'USER'
-            UNION
-            SELECT DISTINCT entry_date AS day FROM diary_entries WHERE user_id = #{userId}
         ),
         numbered AS (
             SELECT day, ROW_NUMBER() OVER (ORDER BY day ASC) AS rn
@@ -64,9 +56,6 @@
             SELECT 1 FROM messages m JOIN conversations c ON m.conversation_id = c.id
             WHERE c.user_id = #{userId} AND m.role = 'USER'
               AND DATE(m.created_at AT TIME ZONE 'UTC') = CURRENT_DATE
-            UNION ALL
-            SELECT 1 FROM diary_entries
-            WHERE user_id = #{userId} AND entry_date = CURRENT_DATE
         )
     </select>
 
@@ -90,23 +79,16 @@
             WHERE c.user_id = #{userId} AND m.role = 'USER'
               AND m.created_at >= CURRENT_DATE - INTERVAL '6 days'
             GROUP BY 1
-        ),
-        diary AS (
-            SELECT entry_date AS day, COUNT(*) AS cnt
-            FROM diary_entries WHERE user_id = #{userId}
-              AND entry_date >= CURRENT_DATE - INTERVAL '6 days'
-            GROUP BY 1
         )
         SELECT
             TO_CHAR(d.day, 'Dy') AS day,
-            COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) * 2 + COALESCE(di.cnt, 0) * 5 AS minutes,
+            COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) * 2 AS minutes,
             CASE WHEN COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) > 0
                  THEN LEAST(100, 70 + COALESCE(cor.cnt, 0) * 5)
                  ELSE 0 END AS accuracy
         FROM days d
         LEFT JOIN messages m ON m.day = d.day
         LEFT JOIN corrections cor ON cor.day = d.day
-        LEFT JOIN diary di ON di.day = d.day
         ORDER BY d.day ASC
     </select>
 

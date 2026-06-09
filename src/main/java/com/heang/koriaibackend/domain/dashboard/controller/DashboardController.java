@@ -28,11 +28,10 @@ public class DashboardController {
 
         int correctionsThisWeek = dashboardMapper.countCorrectionsThisWeek(userId);
         int messagesThisWeek = dashboardMapper.countMessagesThisWeek(userId);
-        int diaryThisWeek = dashboardMapper.countDiaryThisWeek(userId);
         int streakDays = dashboardMapper.countStreakDays(userId);
         int wordsSaved = dashboardMapper.countTotalCorrections(userId);
 
-        int weeklyMinutes = messagesThisWeek + correctionsThisWeek * 2 + diaryThisWeek * 5;
+        int weeklyMinutes = messagesThisWeek + correctionsThisWeek * 2;
         int dailyGoalProgress = Math.min(100, (messagesThisWeek / 7 + correctionsThisWeek / 7) * 20);
 
         DashboardStats stats = new DashboardStats(

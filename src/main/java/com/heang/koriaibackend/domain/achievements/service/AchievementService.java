@@ -86,7 +86,6 @@ public class AchievementService {
     private Map<String, Integer> computeMetrics(Long userId) {
         int vocab = achievementMapper.countVocab(userId);
         int corrections = achievementMapper.countCorrections(userId);
-        int diary = achievementMapper.countDiary(userId);
         int chat = achievementMapper.countChatMessages(userId);
         int listening = listeningMapper.countCompletedAttempts(userId);
         int streak = dashboardMapper.countStreakDays(userId);
@@ -94,11 +93,10 @@ public class AchievementService {
         Map<String, Integer> metrics = new HashMap<>();
         metrics.put("vocab", vocab);
         metrics.put("corrections", corrections);
-        metrics.put("diary", diary);
         metrics.put("chat", chat);
         metrics.put("listening", listening);
         metrics.put("streak", streak);
-        metrics.put("activity", vocab + corrections + diary + chat + listening);
+        metrics.put("activity", vocab + corrections + chat + listening);
         return metrics;
     }
 
