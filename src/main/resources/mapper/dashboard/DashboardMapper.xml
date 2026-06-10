@@ -4,6 +4,23 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.heang.koriaibackend.domain.dashboard.mapper.DashboardMapper">
 
+    <!-- Any learning action counts as activity: corrections, chat messages,
+         vocab deck building, and flashcard reviews. -->
+    <sql id="activityDaysUnion">
+        SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS day
+        FROM sentence_corrections WHERE user_id = #{userId}
+        UNION
+        SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'UTC') AS day
+        FROM messages m JOIN conversations c ON m.conversation_id = c.id
+        WHERE c.user_id = #{userId} AND m.role = 'USER'
+        UNION
+        SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS day
+        FROM vocab_cards WHERE user_id = #{userId}
+        UNION
+        SELECT DISTINCT DATE(last_reviewed_at AT TIME ZONE 'UTC') AS day
+        FROM vocab_cards WHERE user_id = #{userId} AND last_reviewed_at IS NOT NULL
+    </sql>
+
     <select id="countCorrectionsThisWeek" resultType="int">
         SELECT COUNT(*) FROM sentence_corrections
         WHERE user_id = #{userId}
@@ -18,45 +35,71 @@
           AND m.created_at >= NOW() - INTERVAL '7 days'
     </select>
 
-    <select id="countTotalCorrections" resultType="int">
-        SELECT COUNT(*) FROM sentence_corrections WHERE user_id = #{userId}
+    <select id="countTotalWordsSaved" resultType="int">
+        SELECT COUNT(*) FROM vocab_cards WHERE user_id = #{userId}
     </select>
 
+    <select id="countReviewsToday" resultType="int">
+        SELECT COUNT(*) FROM vocab_cards
+        WHERE user_id = #{userId}
+          AND last_reviewed_at IS NOT NULL
+          AND DATE(last_reviewed_at AT TIME ZONE 'UTC') = CURRENT_DATE
+    </select>
+
+    <select id="countCorrectionsToday" resultType="int">
+        SELECT COUNT(*) FROM sentence_corrections
+        WHERE user_id = #{userId}
+          AND DATE(created_at AT TIME ZONE 'UTC') = CURRENT_DATE
+    </select>
+
+    <select id="countDueReviews" resultType="int">
+        SELECT COUNT(*) FROM vocab_cards
+        WHERE user_id = #{userId}
+          AND next_review_date &lt;= CURRENT_DATE
+    </select>
+
+    <!-- Forgiving streak: a single missed day does not break the chain
+         (gaps of up to 2 calendar days connect), and the streak survives
+         until 2 full days pass with no activity. Counts active days only. -->
     <select id="countStreakDays" resultType="int">
         WITH activity_days AS (
-            SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS day
-            FROM sentence_corrections WHERE user_id = #{userId}
-            UNION
-            SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'UTC') AS day
-            FROM messages m JOIN conversations c ON m.conversation_id = c.id
-            WHERE c.user_id = #{userId} AND m.role = 'USER'
+            <include refid="activityDaysUnion"/>
         ),
-        numbered AS (
-            SELECT day, ROW_NUMBER() OVER (ORDER BY day ASC) AS rn
-            FROM activity_days
-            WHERE day &lt;= CURRENT_DATE
+        ordered AS (
+            SELECT day FROM activity_days WHERE day &lt;= CURRENT_DATE
         ),
-        grouped AS (
-            SELECT day, (day - CAST(rn - 1 AS INTEGER)) AS grp
-            FROM numbered
+        gaps AS (
+            SELECT day, day - LEAD(day) OVER (ORDER BY day DESC) AS gap
+            FROM ordered
+        ),
+        runs AS (
+            SELECT day,
+                   SUM(CASE WHEN gap IS NULL OR gap &lt;= 2 THEN 0 ELSE 1 END)
+                       OVER (ORDER BY day DESC ROWS UNBOUNDED PRECEDING) AS grp
+            FROM gaps
         )
         SELECT CASE
-            WHEN (SELECT MAX(day) FROM activity_days WHERE day &lt;= CURRENT_DATE) &gt;= CURRENT_DATE - 1
-            THEN (SELECT COUNT(*) FROM grouped
-                  WHERE grp = (SELECT grp FROM grouped ORDER BY day DESC LIMIT 1))
+            WHEN (SELECT MAX(day) FROM ordered) &gt;= CURRENT_DATE - 2
+            THEN (SELECT COUNT(*) FROM runs WHERE grp = 0)
             ELSE 0
         END
     </select>
 
     <select id="hasActivityToday" resultType="boolean">
         SELECT EXISTS (
-            SELECT 1 FROM sentence_corrections
-            WHERE user_id = #{userId} AND DATE(created_at AT TIME ZONE 'UTC') = CURRENT_DATE
-            UNION ALL
-            SELECT 1 FROM messages m JOIN conversations c ON m.conversation_id = c.id
-            WHERE c.user_id = #{userId} AND m.role = 'USER'
-              AND DATE(m.created_at AT TIME ZONE 'UTC') = CURRENT_DATE
+            SELECT 1 FROM (
+                <include refid="activityDaysUnion"/>
+            ) a WHERE a.day = CURRENT_DATE
         )
+    </select>
+
+    <select id="getActivityDays" resultType="string">
+        SELECT TO_CHAR(a.day, 'YYYY-MM-DD')
+        FROM (
+            <include refid="activityDaysUnion"/>
+        ) a
+        WHERE TO_CHAR(a.day, 'YYYY-MM') = #{month}
+        ORDER BY a.day
     </select>
 
     <select id="getDailyActivity" resultType="map">

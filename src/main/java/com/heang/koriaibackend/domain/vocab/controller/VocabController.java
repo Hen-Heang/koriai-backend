@@ -1,7 +1,12 @@
 package com.heang.koriaibackend.domain.vocab.controller;
 
 import com.heang.koriaibackend.common.api.ApiResponse;
+import com.heang.koriaibackend.domain.vocab.dto.ImportVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SaveVocabRequest;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceChallengeResponse;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckRequest;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
+import com.heang.koriaibackend.domain.vocab.dto.UpdateVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.service.VocabService;
 import com.heang.koriaibackend.security.util.SecurityUtils;
@@ -10,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -51,5 +57,27 @@ public class VocabController {
             @RequestParam String category,
             @RequestParam(defaultValue = "10") int count) {
         return ApiResponse.success(vocabService.generateByCategory(SecurityUtils.currentUserId(), category, Math.min(count, 20)));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<VocabItemResponse> update(@PathVariable Long id,
+                                                 @Valid @RequestBody UpdateVocabRequest request) {
+        return ApiResponse.success(vocabService.updateCard(SecurityUtils.currentUserId(), id, request));
+    }
+
+    @PostMapping("/import")
+    public ApiResponse<List<VocabItemResponse>> importList(@Valid @RequestBody ImportVocabRequest request) {
+        return ApiResponse.success(vocabService.importList(SecurityUtils.currentUserId(), request));
+    }
+
+    @GetMapping("/{id}/sentence-challenge")
+    public ApiResponse<SentenceChallengeResponse> getSentenceChallenge(@PathVariable Long id) {
+        return ApiResponse.success(vocabService.getSentenceChallenge(SecurityUtils.currentUserId(), id));
+    }
+
+    @PostMapping("/{id}/check-sentence")
+    public ApiResponse<SentenceCheckResponse> checkSentence(@PathVariable Long id,
+                                                             @RequestBody SentenceCheckRequest request) {
+        return ApiResponse.success(vocabService.checkSentence(SecurityUtils.currentUserId(), id, request));
     }
 }

@@ -11,6 +11,8 @@ public record VocabItemResponse(
         String meaning,
         String example,
         String exampleTranslation,
+        String pronunciation,
+        String difficultyLevel,
         int mastery,
         String nextReview,
         List<String> tags
@@ -23,6 +25,8 @@ public record VocabItemResponse(
                 card.getMeaning(),
                 card.getExample(),
                 card.getExampleTranslation(),
+                card.getPronunciation(),
+                card.getDifficultyLevel(),
                 card.getMastery(),
                 card.getNextReviewDate() != null ? card.getNextReviewDate().toString() : "-",
                 List.of()

@@ -22,6 +22,8 @@ public class VocabCard {
     private String meaning;
     private String example;
     private String exampleTranslation;
+    private String pronunciation;
+    private String difficultyLevel;
     private int mastery;
     private LocalDate nextReviewDate;
     private String tags;

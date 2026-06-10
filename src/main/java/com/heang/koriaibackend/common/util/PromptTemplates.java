@@ -47,18 +47,25 @@ public final class PromptTemplates {
 
     public static String vocabGenerationPrompt(String category, String level, int count) {
         return """
-                You are a Korean vocabulary teacher.
+                You are a Korean vocabulary teacher for foreign software engineers working in Korea.
                 Generate %d Korean vocabulary flashcards for the category "%s" suitable for a %s level learner.
+                Focus on practical, high-frequency words and phrases used in real daily workplace situations.
                 Return ONLY valid JSON array with this shape (no extra text):
                 [
                   {
                     "term": "Korean word or phrase",
                     "meaning": "English meaning",
-                    "example": "Short Korean example sentence using the term naturally",
+                    "pronunciation": "Revised Romanization (e.g. an-nyeong-ha-se-yo)",
+                    "difficultyLevel": "Easy | Medium | Hard",
+                    "example": "Short natural Korean sentence using the term in a daily workplace context",
                     "exampleTranslation": "English translation of the example sentence",
                     "tags": ["tag1", "tag2"]
                   }
                 ]
+                Rules:
+                - "pronunciation" must use Revised Romanization (ISO 11941).
+                - "difficultyLevel" must be exactly "Easy", "Medium", or "Hard" based on the learner level.
+                - "example" must be a realistic sentence a Korean coworker or developer would actually say.
                 """.formatted(count, category, level);
     }
 
@@ -138,6 +145,74 @@ public final class PromptTemplates {
                 - Korean lines must be natural workplace Korean a real Korean developer would say.
                 - Every line must include an accurate English translation.
                 """.formatted(topic, level);
+    }
+
+    public static String vocabImportPrompt(String rawText) {
+        return """
+                You are a Korean vocabulary list parser for a flashcard app.
+                The user pasted a word list from their Korean textbook (e.g. KIIP 사회통합프로그램).
+                The list may contain numbering, section headers (명사, 동사, 형용사, 부사), emoji, and translations in ANY language (English, Khmer, etc.).
+                Extract every vocabulary entry. Return ONLY a valid JSON array (no extra text, no markdown fences):
+                [
+                  {
+                    "term": "the Korean word or phrase exactly as written",
+                    "meaning": "the translation exactly as the user wrote it, unchanged",
+                    "meaningEn": "short English meaning of the Korean term (1-5 words)",
+                    "pronunciation": "Revised Romanization of the term",
+                    "partOfSpeech": "noun | verb | adjective | adverb | expression"
+                  }
+                ]
+                Rules:
+                - Keep the user's translation EXACTLY as written, including their language. Do not translate or edit it.
+                - "meaningEn" is YOUR English gloss, added so the learner can also study Korean-English.
+                - Use the section headers (명사/동사/형용사/부사) to set partOfSpeech when present; otherwise infer it.
+                - Skip lines that are headers, lesson titles, or not vocabulary entries.
+                - Do not invent entries that are not in the list.
+
+                Parse this list:
+                %s
+                """.formatted(rawText);
+    }
+
+    public static String sentenceChallengePrompt(String term, String meaning) {
+        return """
+                You are a Korean language practice coach for foreign software engineers at Korean tech companies.
+                Generate a sentence writing challenge for the Korean word: "%s" (meaning: %s).
+                Return ONLY valid JSON with this exact shape (no extra text, no markdown fences):
+                {
+                  "challengePrompt": "A clear English instruction (1 sentence) telling the user to write a Korean sentence using this word in a realistic workplace situation",
+                  "contextHint": "A short English hint about the workplace situation (e.g. standup, Slack message, code review) to help the learner imagine the context",
+                  "exampleAnswer": "A natural Korean model answer sentence that a real Korean developer would say or write"
+                }
+                Rules:
+                - challengePrompt must be in English, action-oriented, workplace-focused.
+                - contextHint must be 1 short English sentence giving the scene.
+                - exampleAnswer must use the Korean term naturally and be realistic for a Korean tech company.
+                """.formatted(term, meaning);
+    }
+
+    public static String sentenceCheckPrompt(String term, String meaning, String challengePrompt, String attempt) {
+        return """
+                You are a Korean language coach evaluating a Korean learner's sentence.
+                The learner was asked: "%s"
+                Target Korean word: "%s" (meaning: %s)
+                Learner's attempt: "%s"
+
+                Evaluate and return ONLY valid JSON with this exact shape (no extra text, no markdown fences):
+                {
+                  "score": <integer 0-100>,
+                  "correct": <true if score >= 60, false otherwise>,
+                  "feedback": "2-3 sentences in English: what they got right and what needs improvement",
+                  "correctedSentence": "The corrected Korean sentence (same as attempt if already perfect)",
+                  "betterAlternative": "A more natural or professional Korean sentence using the same word",
+                  "grammarNote": "One key grammar or vocabulary point the learner should remember from this exercise"
+                }
+                Rules:
+                - Score 0-100: grammar correctness + naturalness + word usage.
+                - If the attempt is blank or in English only, score 0 and explain in feedback.
+                - All explanations must be in English.
+                - betterAlternative must be realistic workplace Korean.
+                """.formatted(challengePrompt, term, meaning, attempt);
     }
 
     public static String analyzerPrompt(String text, String source) {

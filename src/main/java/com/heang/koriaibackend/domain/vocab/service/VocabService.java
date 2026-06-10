@@ -8,7 +8,12 @@ import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;
+import com.heang.koriaibackend.domain.vocab.dto.ImportVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SaveVocabRequest;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceChallengeResponse;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckRequest;
+import com.heang.koriaibackend.domain.vocab.dto.UpdateVocabRequest;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.mapper.VocabCardMapper;
 import com.heang.koriaibackend.domain.vocab.model.VocabCard;
@@ -88,6 +93,133 @@ public class VocabService {
         return cards.stream().map(VocabItemResponse::from).toList();
     }
 
+    @Transactional
+    public VocabItemResponse updateCard(Long userId, Long cardId, UpdateVocabRequest request) {
+        VocabCard existing = vocabCardMapper.findByIdAndUser(cardId, userId);
+        if (existing == null) {
+            throw new RuntimeException("Card not found");
+        }
+        String category = hasText(request.category()) ? request.category().trim() : existing.getCategory();
+        vocabCardMapper.updateCard(
+                cardId,
+                userId,
+                category,
+                request.term().trim(),
+                request.meaning().trim(),
+                hasText(request.example()) ? request.example().trim() : null,
+                hasText(request.pronunciation()) ? request.pronunciation().trim() : null
+        );
+        return VocabItemResponse.from(vocabCardMapper.findByIdAndUser(cardId, userId));
+    }
+
+    @Transactional
+    public List<VocabItemResponse> importList(Long userId, ImportVocabRequest request) {
+        String prompt = PromptTemplates.vocabImportPrompt(request.text());
+        OpenAiResult result = openAiService.generate(prompt, model);
+
+        List<VocabCard> cards = parseImportedCards(userId, request.category().trim(), result.content());
+        cards.forEach(vocabCardMapper::insert);
+        return cards.stream().map(VocabItemResponse::from).toList();
+    }
+
+    private List<VocabCard> parseImportedCards(Long userId, String category, String json) {
+        try {
+            String cleaned = json.trim();
+            int start = cleaned.indexOf('[');
+            int end = cleaned.lastIndexOf(']');
+            if (start == -1 || end == -1) return Collections.emptyList();
+            cleaned = cleaned.substring(start, end + 1);
+
+            JsonNode array = objectMapper.readTree(cleaned);
+            List<VocabCard> cards = new ArrayList<>();
+            for (JsonNode node : array) {
+                String term = node.path("term").asText("").trim();
+                String meaning = node.path("meaning").asText("").trim();
+                if (term.isEmpty() || meaning.isEmpty()) continue;
+
+                String meaningEn = node.path("meaningEn").asText(null);
+                String pos = node.path("partOfSpeech").asText(null);
+                String pronunciation = node.path("pronunciation").asText(null);
+                String tags = hasText(pos) ? "[\"" + pos.replace("\"", "") + "\"]" : "[]";
+
+                // The user's own translation is the primary meaning; the English
+                // gloss rides along so Korean→English study modes still work.
+                cards.add(VocabCard.builder()
+                        .userId(userId)
+                        .category(category)
+                        .term(term)
+                        .meaning(hasText(meaningEn) ? meaning + " — " + meaningEn : meaning)
+                        .pronunciation(hasText(pronunciation) ? pronunciation : null)
+                        .mastery(0)
+                        .tags(tags)
+                        .build());
+            }
+            return cards;
+        } catch (JsonProcessingException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    public SentenceChallengeResponse getSentenceChallenge(Long userId, Long cardId) {
+        VocabCard card = vocabCardMapper.findByUserId(userId).stream()
+                .filter(c -> c.getId().equals(cardId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Card not found"));
+
+        String prompt = PromptTemplates.sentenceChallengePrompt(card.getTerm(), card.getMeaning());
+        OpenAiResult result = openAiService.generate(prompt, model);
+
+        try {
+            String cleaned = result.content().trim();
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start != -1 && end != -1) cleaned = cleaned.substring(start, end + 1);
+            JsonNode node = objectMapper.readTree(cleaned);
+            return new SentenceChallengeResponse(
+                    String.valueOf(cardId),
+                    card.getTerm(),
+                    card.getMeaning(),
+                    node.path("challengePrompt").asText("Write a sentence using this word."),
+                    node.path("contextHint").asText(""),
+                    node.path("exampleAnswer").asText("")
+            );
+        } catch (JsonProcessingException e) {
+            return new SentenceChallengeResponse(
+                    String.valueOf(cardId), card.getTerm(), card.getMeaning(),
+                    "Write a Korean sentence using the word: " + card.getTerm(), "", "");
+        }
+    }
+
+    public SentenceCheckResponse checkSentence(Long userId, Long cardId, SentenceCheckRequest request) {
+        VocabCard card = vocabCardMapper.findByUserId(userId).stream()
+                .filter(c -> c.getId().equals(cardId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Card not found"));
+
+        String prompt = PromptTemplates.sentenceCheckPrompt(
+                card.getTerm(), card.getMeaning(),
+                request.challengePrompt(), request.attempt());
+        OpenAiResult result = openAiService.generate(prompt, model);
+
+        try {
+            String cleaned = result.content().trim();
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start != -1 && end != -1) cleaned = cleaned.substring(start, end + 1);
+            JsonNode node = objectMapper.readTree(cleaned);
+            return new SentenceCheckResponse(
+                    node.path("score").asInt(0),
+                    node.path("correct").asBoolean(false),
+                    node.path("feedback").asText(""),
+                    node.path("correctedSentence").asText(""),
+                    node.path("betterAlternative").asText(""),
+                    node.path("grammarNote").asText("")
+            );
+        } catch (JsonProcessingException e) {
+            return new SentenceCheckResponse(0, false, "Could not evaluate. Please try again.", "", "", "");
+        }
+    }
+
     private List<VocabCard> parseVocabCards(Long userId, String category, String json) {
         try {
             String cleaned = json.trim();
@@ -100,11 +232,15 @@ public class VocabService {
             List<VocabCard> cards = new ArrayList<>();
             for (JsonNode node : array) {
                 String tagsJson = node.has("tags") ? node.get("tags").toString() : "[]";
+                String pronunciation = node.path("pronunciation").asText(null);
+                String difficulty = node.path("difficultyLevel").asText(null);
                 cards.add(VocabCard.builder()
                         .userId(userId)
                         .category(category)
                         .term(node.path("term").asText(""))
                         .meaning(node.path("meaning").asText(""))
+                        .pronunciation(hasText(pronunciation) ? pronunciation : null)
+                        .difficultyLevel(hasText(difficulty) ? difficulty : null)
                         .example(node.path("example").asText(null))
                         .exampleTranslation(node.path("exampleTranslation").asText(null))
                         .mastery(0)

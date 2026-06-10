@@ -10,6 +10,7 @@ import com.heang.koriaibackend.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,17 +30,24 @@ public class DashboardController {
         int correctionsThisWeek = dashboardMapper.countCorrectionsThisWeek(userId);
         int messagesThisWeek = dashboardMapper.countMessagesThisWeek(userId);
         int streakDays = dashboardMapper.countStreakDays(userId);
-        int wordsSaved = dashboardMapper.countTotalCorrections(userId);
+        int wordsSaved = dashboardMapper.countTotalWordsSaved(userId);
+        int reviewsToday = dashboardMapper.countReviewsToday(userId);
+        int correctionsToday = dashboardMapper.countCorrectionsToday(userId);
+        int dueReviews = dashboardMapper.countDueReviews(userId);
 
         int weeklyMinutes = messagesThisWeek + correctionsThisWeek * 2;
-        int dailyGoalProgress = Math.min(100, (messagesThisWeek / 7 + correctionsThisWeek / 7) * 20);
+        // Daily goal: 5 flashcard reviews (20% each) OR 1 written sentence (100%).
+        int dailyGoalProgress = Math.min(100, reviewsToday * 20 + correctionsToday * 100);
 
         DashboardStats stats = new DashboardStats(
                 streakDays,
                 weeklyMinutes,
                 wordsSaved,
                 correctionsThisWeek,
-                dailyGoalProgress
+                dailyGoalProgress,
+                reviewsToday,
+                correctionsToday,
+                dueReviews
         );
 
         List<Map<String, Object>> raw = dashboardMapper.getDailyActivity(userId);
@@ -60,5 +68,14 @@ public class DashboardController {
         int streakDays = dashboardMapper.countStreakDays(userId);
         boolean activityToday = dashboardMapper.hasActivityToday(userId);
         return ApiResponse.success(new StreakResponse(streakDays, activityToday));
+    }
+
+    @GetMapping("/activity")
+    public ApiResponse<List<String>> getActivityDays(@RequestParam String month) {
+        Long userId = SecurityUtils.currentUserId();
+        if (!month.matches("\\d{4}-\\d{2}")) {
+            return ApiResponse.success(List.of());
+        }
+        return ApiResponse.success(dashboardMapper.getActivityDays(userId, month));
     }
 }

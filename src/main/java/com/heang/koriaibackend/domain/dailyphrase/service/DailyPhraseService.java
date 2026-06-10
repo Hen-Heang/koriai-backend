@@ -14,6 +14,9 @@ import com.heang.koriaibackend.domain.dailyphrase.model.DailyPhrase;
 import com.heang.koriaibackend.domain.usage.service.ApiUsageLogService;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceChallengeResponse;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckRequest;
+import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.mapper.VocabCardMapper;
 import com.heang.koriaibackend.domain.vocab.model.VocabCard;
@@ -108,6 +111,61 @@ public class DailyPhraseService {
                 .build();
         vocabCardMapper.insert(card);
         return VocabItemResponse.from(card);
+    }
+
+    public SentenceChallengeResponse getPracticeChallenge(Long userId, Long id) {
+        DailyPhrase phrase = dailyPhraseMapper.findByIdAndUser(id, userId);
+        if (phrase == null) throw new BusinessException(Code.NOT_FOUND, "Daily phrase not found");
+
+        String prompt = PromptTemplates.sentenceChallengePrompt(phrase.getPhraseKr(), phrase.getMeaningEn());
+        OpenAiResult result = openAiService.generate(prompt, model);
+
+        try {
+            String cleaned = result.content().trim();
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start != -1 && end != -1) cleaned = cleaned.substring(start, end + 1);
+            var node = objectMapper.readTree(cleaned);
+            return new SentenceChallengeResponse(
+                    String.valueOf(id),
+                    phrase.getPhraseKr(),
+                    phrase.getMeaningEn(),
+                    node.path("challengePrompt").asText("Write a sentence using today's phrase."),
+                    node.path("contextHint").asText(""),
+                    node.path("exampleAnswer").asText("")
+            );
+        } catch (JsonProcessingException e) {
+            return new SentenceChallengeResponse(String.valueOf(id), phrase.getPhraseKr(), phrase.getMeaningEn(),
+                    "Write a Korean sentence using today's phrase: " + phrase.getPhraseKr(), "", "");
+        }
+    }
+
+    public SentenceCheckResponse checkPractice(Long userId, Long id, SentenceCheckRequest request) {
+        DailyPhrase phrase = dailyPhraseMapper.findByIdAndUser(id, userId);
+        if (phrase == null) throw new BusinessException(Code.NOT_FOUND, "Daily phrase not found");
+
+        String prompt = PromptTemplates.sentenceCheckPrompt(
+                phrase.getPhraseKr(), phrase.getMeaningEn(),
+                request.challengePrompt(), request.attempt());
+        OpenAiResult result = openAiService.generate(prompt, model);
+
+        try {
+            String cleaned = result.content().trim();
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start != -1 && end != -1) cleaned = cleaned.substring(start, end + 1);
+            var node = objectMapper.readTree(cleaned);
+            return new SentenceCheckResponse(
+                    node.path("score").asInt(0),
+                    node.path("correct").asBoolean(false),
+                    node.path("feedback").asText(""),
+                    node.path("correctedSentence").asText(""),
+                    node.path("betterAlternative").asText(""),
+                    node.path("grammarNote").asText("")
+            );
+        } catch (JsonProcessingException e) {
+            return new SentenceCheckResponse(0, false, "Could not evaluate. Please try again.", "", "", "");
+        }
     }
 
     private List<SimilarExpression> parseSimilar(String json) {

@@ -5,6 +5,9 @@ public record DashboardStats(
         int weeklyMinutes,
         int wordsSaved,
         int correctionsThisWeek,
-        int dailyGoalProgress
+        int dailyGoalProgress,
+        int reviewsToday,
+        int correctionsToday,
+        int dueReviews
 ) {
 }

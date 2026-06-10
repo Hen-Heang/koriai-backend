@@ -73,7 +73,8 @@ public class SecurityConfig {
                         // Permit all requests of type ASYNC.
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                         // Permit all requests to /api/auth/**, /api/health, and /error endpoints.
-                        .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health", "/error",
+                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Any other request must be authenticated.
                         .anyRequest().authenticated())
                 // Add the custom JWT authentication filter before the standard UsernamePasswordAuthenticationFilter.
