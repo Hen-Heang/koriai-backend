@@ -29,7 +29,17 @@ public record VocabItemResponse(
                 card.getDifficultyLevel(),
                 card.getMastery(),
                 card.getNextReviewDate() != null ? card.getNextReviewDate().toString() : "-",
-                List.of()
+                parseTags(card.getTags())
         );
+    }
+
+    private static List<String> parseTags(String json) {
+        if (json == null || json.isBlank() || json.equals("[]")) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(json.replaceAll("[\\[\\]\"]", "").split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 }

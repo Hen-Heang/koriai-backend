@@ -12,16 +12,30 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Collections;
 
 @RestController
 @RequestMapping("/api/tts")
 public class TtsController {
 
+    private static final int CACHE_MAX_ENTRIES = 300;
+
     @Value("${openai.api-key}")
     private String apiKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
+
+    // Vocab terms and phrases are replayed constantly during review sessions —
+    // cache the synthesized audio so repeats skip the OpenAI round trip.
+    private final Map<String, byte[]> audioCache = Collections.synchronizedMap(
+            new LinkedHashMap<>(64, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, byte[]> eldest) {
+                    return size() > CACHE_MAX_ENTRIES;
+                }
+            });
 
     public record TtsRequest(String text, String voice) {}
 
@@ -37,14 +51,21 @@ public class TtsController {
             text = text.substring(0, 500);
         }
 
+        String cacheKey = voice + "|" + text;
+        byte[] cached = audioCache.get(cacheKey);
+        if (cached != null) {
+            return audioResponse(cached);
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + apiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, String> body = Map.of(
-                "model", "tts-1",
+                "model", "gpt-4o-mini-tts",
                 "input", text,
-                "voice", voice
+                "voice", voice,
+                "instructions", "Speak as a native Korean speaker with natural, clear pronunciation at a normal conversational pace. Read any non-Korean words in their own language."
         );
 
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
@@ -55,8 +76,17 @@ public class TtsController {
                 byte[].class
         );
 
+        byte[] audio = response.getBody();
+        if (audio != null && audio.length > 0) {
+            audioCache.put(cacheKey, audio);
+        }
+        return audioResponse(audio);
+    }
+
+    private ResponseEntity<byte[]> audioResponse(byte[] audio) {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("audio/mpeg"))
-                .body(response.getBody());
+                .header("Cache-Control", "private, max-age=86400")
+                .body(audio);
     }
 }
