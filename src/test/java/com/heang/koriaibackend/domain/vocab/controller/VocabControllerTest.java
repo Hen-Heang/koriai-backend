@@ -22,7 +22,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -85,5 +87,14 @@ class VocabControllerTest {
                 .andExpect(jsonPath("$.status.code").value(200))
                 .andExpect(jsonPath("$.data.term").value("안녕하세요"))
                 .andExpect(jsonPath("$.data.meaning").value("Polite hello"));
+    }
+
+    @Test
+    void delete_ShouldRemoveCardForCurrentUser() throws Exception {
+        mockMvc.perform(delete("/api/vocab/42"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status.code").value(200));
+
+        verify(vocabService).deleteCard(1L, 42L);
     }
 }

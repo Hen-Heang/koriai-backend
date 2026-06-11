@@ -28,4 +28,9 @@ public class VocabCard {
     private LocalDate nextReviewDate;
     private String tags;
     private OffsetDateTime createdAt;
+    @Builder.Default
+    private double easeFactor = 2.5;
+    private int intervalDays;
+    private int repetitions;
+    private int lapses;
 }

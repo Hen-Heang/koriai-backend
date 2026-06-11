@@ -9,10 +9,12 @@ import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.UpdateVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.dto.WordLookupResponse;
+import com.heang.koriaibackend.domain.vocab.model.ReviewRating;
 import com.heang.koriaibackend.domain.vocab.service.VocabService;
 import com.heang.koriaibackend.security.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,6 +60,11 @@ public class VocabController {
         return ApiResponse.success(null);
     }
 
+    @PostMapping("/{id}/rate")
+    public ApiResponse<VocabItemResponse> rate(@PathVariable Long id, @RequestParam ReviewRating rating) {
+        return ApiResponse.success(vocabService.rateCard(SecurityUtils.currentUserId(), id, rating));
+    }
+
     @PostMapping("/generate")
     public ApiResponse<List<VocabItemResponse>> generate(
             @RequestParam String category,
@@ -69,6 +76,12 @@ public class VocabController {
     public ApiResponse<VocabItemResponse> update(@PathVariable Long id,
                                                  @Valid @RequestBody UpdateVocabRequest request) {
         return ApiResponse.success(vocabService.updateCard(SecurityUtils.currentUserId(), id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        vocabService.deleteCard(SecurityUtils.currentUserId(), id);
+        return ApiResponse.success(null);
     }
 
     @PostMapping("/import")

@@ -17,13 +17,13 @@ import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.domain.vocab.dto.WordLookupResponse;
 import com.heang.koriaibackend.domain.vocab.mapper.VocabCardMapper;
+import com.heang.koriaibackend.domain.vocab.model.ReviewRating;
 import com.heang.koriaibackend.domain.vocab.model.VocabCard;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -67,18 +67,30 @@ public class VocabService {
         return VocabItemResponse.from(card);
     }
 
+    /** Legacy binary review — kept for older clients; maps onto the SM-2 grades. */
     @Transactional
     public void markReviewed(Long userId, Long cardId, boolean correct) {
-        VocabCard card = vocabCardMapper.findByUserId(userId).stream()
-                .filter(c -> c.getId().equals(cardId))
-                .findFirst()
-                .orElse(null);
-        if (card == null) return;
+        rateCard(userId, cardId, correct ? ReviewRating.GOOD : ReviewRating.AGAIN);
+    }
 
-        int newMastery = correct ? Math.min(100, card.getMastery() + 20) : Math.max(0, card.getMastery() - 10);
-        int daysUntilReview = correct ? Math.max(1, newMastery / 20) : 1;
-        String nextReview = LocalDate.now().plusDays(daysUntilReview).toString();
-        vocabCardMapper.updateMastery(cardId, userId, newMastery, nextReview);
+    @Transactional
+    public VocabItemResponse rateCard(Long userId, Long cardId, ReviewRating rating) {
+        VocabCard card = vocabCardMapper.findByIdAndUser(cardId, userId);
+        if (card == null) {
+            throw new RuntimeException("Card not found");
+        }
+
+        SrsScheduler.Result next = SrsScheduler.rate(
+                card.getEaseFactor(), card.getIntervalDays(), card.getRepetitions(), card.getLapses(), rating);
+
+        card.setEaseFactor(next.easeFactor());
+        card.setIntervalDays(next.intervalDays());
+        card.setRepetitions(next.repetitions());
+        card.setLapses(next.lapses());
+        card.setMastery(next.mastery());
+        card.setNextReviewDate(next.nextReview());
+        vocabCardMapper.updateSrs(card);
+        return VocabItemResponse.from(card);
     }
 
     @Transactional
@@ -111,6 +123,14 @@ public class VocabService {
                 hasText(request.pronunciation()) ? request.pronunciation().trim() : null
         );
         return VocabItemResponse.from(vocabCardMapper.findByIdAndUser(cardId, userId));
+    }
+
+    @Transactional
+    public void deleteCard(Long userId, Long cardId) {
+        int deleted = vocabCardMapper.deleteByIdAndUser(cardId, userId);
+        if (deleted == 0) {
+            throw new RuntimeException("Card not found");
+        }
     }
 
     @Transactional

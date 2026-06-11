@@ -15,7 +15,11 @@ public record VocabItemResponse(
         String difficultyLevel,
         int mastery,
         String nextReview,
-        List<String> tags
+        List<String> tags,
+        double easeFactor,
+        int intervalDays,
+        int repetitions,
+        int lapses
 ) {
     public static VocabItemResponse from(VocabCard card) {
         return new VocabItemResponse(
@@ -29,7 +33,11 @@ public record VocabItemResponse(
                 card.getDifficultyLevel(),
                 card.getMastery(),
                 card.getNextReviewDate() != null ? card.getNextReviewDate().toString() : "-",
-                parseTags(card.getTags())
+                parseTags(card.getTags()),
+                card.getEaseFactor(),
+                card.getIntervalDays(),
+                card.getRepetitions(),
+                card.getLapses()
         );
     }
 

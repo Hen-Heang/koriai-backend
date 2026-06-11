@@ -18,6 +18,10 @@
         <result property="nextReviewDate" column="next_review_date"/>
         <result property="tags" column="tags"/>
         <result property="createdAt" column="created_at"/>
+        <result property="easeFactor" column="ease_factor"/>
+        <result property="intervalDays" column="interval_days"/>
+        <result property="repetitions" column="repetitions"/>
+        <result property="lapses" column="lapses"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.heang.koriaibackend.domain.vocab.model.VocabCard"
@@ -27,14 +31,14 @@
     </insert>
 
     <select id="findByUserId" resultMap="VocabCardResultMap">
-        SELECT id, user_id, category, term, meaning, example, example_translation, pronunciation, difficulty_level, mastery, next_review_date, tags::text, created_at
+        SELECT id, user_id, category, term, meaning, example, example_translation, pronunciation, difficulty_level, mastery, next_review_date, tags::text, created_at, ease_factor, interval_days, repetitions, lapses
         FROM vocab_cards
         WHERE user_id = #{userId}
         ORDER BY created_at DESC
     </select>
 
     <select id="findDueByUserId" resultMap="VocabCardResultMap">
-        SELECT id, user_id, category, term, meaning, example, example_translation, pronunciation, difficulty_level, mastery, next_review_date, tags::text, created_at
+        SELECT id, user_id, category, term, meaning, example, example_translation, pronunciation, difficulty_level, mastery, next_review_date, tags::text, created_at, ease_factor, interval_days, repetitions, lapses
         FROM vocab_cards
         WHERE user_id = #{userId}
           AND next_review_date &lt;= CURRENT_DATE
@@ -42,7 +46,7 @@
     </select>
 
     <select id="findByIdAndUser" resultMap="VocabCardResultMap">
-        SELECT id, user_id, category, term, meaning, example, example_translation, pronunciation, difficulty_level, mastery, next_review_date, tags::text, created_at
+        SELECT id, user_id, category, term, meaning, example, example_translation, pronunciation, difficulty_level, mastery, next_review_date, tags::text, created_at, ease_factor, interval_days, repetitions, lapses
         FROM vocab_cards
         WHERE id = #{id}
           AND user_id = #{userId}
@@ -55,6 +59,25 @@
             meaning = #{meaning},
             example = #{example},
             pronunciation = #{pronunciation}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByIdAndUser">
+        DELETE FROM vocab_cards
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+    <update id="updateSrs" parameterType="com.heang.koriaibackend.domain.vocab.model.VocabCard">
+        UPDATE vocab_cards
+        SET mastery = #{mastery},
+            next_review_date = #{nextReviewDate},
+            ease_factor = #{easeFactor},
+            interval_days = #{intervalDays},
+            repetitions = #{repetitions},
+            lapses = #{lapses},
+            last_reviewed_at = NOW()
         WHERE id = #{id}
           AND user_id = #{userId}
     </update>
