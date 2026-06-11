@@ -76,7 +76,11 @@ class VocabControllerTest {
                 "Easy",
                 0,
                 "2026-03-14",
-                List.of()
+                List.of(),
+                2.5,
+                0,
+                0,
+                0
         );
         when(vocabService.saveManual(eq(1L), eq(request))).thenReturn(response);
 
