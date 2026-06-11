@@ -215,6 +215,23 @@ public final class PromptTemplates {
                 """.formatted(challengePrompt, term, meaning, attempt);
     }
 
+    public static String wordLookupPrompt(String word) {
+        return """
+                You are a Korean-English dictionary for Korean learners.
+                Define the Korean word: "%s"
+                Return ONLY valid JSON with this exact shape (no extra text, no markdown fences):
+                {
+                  "definition": "Concise English translation (1-6 words)",
+                  "example": "One short natural Korean sentence using the word",
+                  "exampleTranslation": "English translation of the example sentence",
+                  "hanja": "The Hanja root if the word is Sino-Korean, otherwise null"
+                }
+                Rules:
+                - The example must be simple enough for a beginner-intermediate learner.
+                - Set "hanja" to null (JSON null, not the string "null") for native Korean or loan words.
+                """.formatted(word);
+    }
+
     public static String analyzerPrompt(String text, String source) {
         return """
                 You are a Korean workplace communication analyst helping a foreign software engineer

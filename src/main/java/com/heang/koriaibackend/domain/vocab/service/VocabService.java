@@ -15,6 +15,7 @@ import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckRequest;
 import com.heang.koriaibackend.domain.vocab.dto.UpdateVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
+import com.heang.koriaibackend.domain.vocab.dto.WordLookupResponse;
 import com.heang.koriaibackend.domain.vocab.mapper.VocabCardMapper;
 import com.heang.koriaibackend.domain.vocab.model.VocabCard;
 import lombok.RequiredArgsConstructor;
@@ -217,6 +218,30 @@ public class VocabService {
             );
         } catch (JsonProcessingException e) {
             return new SentenceCheckResponse(0, false, "Could not evaluate. Please try again.", "", "", "");
+        }
+    }
+
+    public WordLookupResponse lookupWord(String word) {
+        String term = word.trim();
+        String prompt = PromptTemplates.wordLookupPrompt(term);
+        OpenAiResult result = openAiService.generate(prompt, model);
+
+        try {
+            String cleaned = result.content().trim();
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start != -1 && end != -1) cleaned = cleaned.substring(start, end + 1);
+            JsonNode node = objectMapper.readTree(cleaned);
+            String hanja = node.path("hanja").asText(null);
+            return new WordLookupResponse(
+                    term,
+                    node.path("definition").asText("No definition found."),
+                    node.path("example").asText(null),
+                    node.path("exampleTranslation").asText(null),
+                    hasText(hanja) && !"null".equalsIgnoreCase(hanja) ? hanja : null
+            );
+        } catch (JsonProcessingException e) {
+            return new WordLookupResponse(term, "Could not fetch definition.", null, null, null);
         }
     }
 

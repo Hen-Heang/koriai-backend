@@ -8,6 +8,7 @@ import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.UpdateVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
+import com.heang.koriaibackend.domain.vocab.dto.WordLookupResponse;
 import com.heang.koriaibackend.domain.vocab.service.VocabService;
 import com.heang.koriaibackend.security.util.SecurityUtils;
 import jakarta.validation.Valid;
@@ -38,6 +39,11 @@ public class VocabController {
     @PostMapping("/save")
     public ApiResponse<VocabItemResponse> save(@Valid @RequestBody SaveVocabRequest request) {
         return ApiResponse.success(vocabService.saveManual(SecurityUtils.currentUserId(), request));
+    }
+
+    @GetMapping("/lookup")
+    public ApiResponse<WordLookupResponse> lookup(@RequestParam String word) {
+        return ApiResponse.success(vocabService.lookupWord(word));
     }
 
     @GetMapping("/review/due")
