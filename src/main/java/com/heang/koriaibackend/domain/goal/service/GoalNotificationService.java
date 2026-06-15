@@ -8,6 +8,7 @@ import com.heang.koriaibackend.domain.goal.mapper.GoalMemberMapper;
 import com.heang.koriaibackend.domain.goal.mapper.GoalNotificationMapper;
 import com.heang.koriaibackend.domain.goal.model.GoalNotification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +18,10 @@ import java.util.UUID;
 /**
  * Goal notifications / invitations. A member of a goal can invite another user;
  * the receiver lists, reads, and accepts/declines. Accepting adds membership.
+ * Task activity also produces self-notifications for the acting user so the
+ * in-app bell reflects their own progress (mirrors Orbit's notifySelfTask).
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GoalNotificationService {
@@ -85,6 +89,28 @@ public class GoalNotificationService {
         notificationMapper.updateInvitationStatus(notificationId, userId, status);
         if (accept && n.getGoalId() != null) {
             goalMemberMapper.insertMember(n.getGoalId(), userId, ROLE_MEMBER);
+        }
+    }
+
+    /**
+     * Best-effort self-notification for the acting user's own activity (task
+     * created / completed). Never throws: a notification failure must not roll
+     * back or break the underlying task write.
+     */
+    public void notifySelf(Long userId, String type, UUID goalId, String url) {
+        try {
+            GoalNotification n = GoalNotification.builder()
+                    .id(UUID.randomUUID())
+                    .type(type)
+                    .goalId(goalId)
+                    .senderId(userId)
+                    .receiverId(userId)
+                    .payload("{}")
+                    .url(url)
+                    .build();
+            notificationMapper.insert(n);
+        } catch (Exception e) {
+            log.warn("Failed to create self-notification (type={}, goalId={})", type, goalId, e);
         }
     }
 }

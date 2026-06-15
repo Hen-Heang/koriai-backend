@@ -31,6 +31,11 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final GoalMapper goalMapper;
     private final GoalMemberMapper goalMemberMapper;
+    private final GoalNotificationService notificationService;
+
+    private static String taskUrl(UUID goalId) {
+        return goalId != null ? "/goals/" + goalId : "/goals/calendar";
+    }
 
     /** Tasks for a goal (used by GET /goals/{id}/tasks). */
     public List<TaskResponse> listByGoal(Long userId, UUID goalId) {
@@ -71,12 +76,14 @@ public class TaskService {
                 .updatedBy(userId)
                 .build();
         taskMapper.insert(task);
+        notificationService.notifySelf(userId, "task_created", task.getGoalId(), taskUrl(task.getGoalId()));
         return TaskResponse.of(taskMapper.findById(task.getId()));
     }
 
     @Transactional
     public TaskResponse updateTask(Long userId, UUID taskId, UpdateTaskRequest req) {
         Task task = requireTaskWrite(userId, taskId);
+        boolean wasCompleted = task.isCompleted();
         if (req.title() != null) task.setTitle(req.title().trim());
         if (req.description() != null) task.setDescription(req.description());
         if (req.completed() != null) task.setCompleted(req.completed());
@@ -90,6 +97,11 @@ public class TaskService {
         if (req.tags() != null) task.setTags(req.tags());
         task.setUpdatedBy(userId);
         taskMapper.update(task);
+        // Self-notify on the incomplete → complete transition only (a milestone,
+        // not on every edit) so the bell stays meaningful and low-noise.
+        if (!wasCompleted && task.isCompleted()) {
+            notificationService.notifySelf(userId, "task_updated", task.getGoalId(), taskUrl(task.getGoalId()));
+        }
         return TaskResponse.of(taskMapper.findById(taskId));
     }
 
