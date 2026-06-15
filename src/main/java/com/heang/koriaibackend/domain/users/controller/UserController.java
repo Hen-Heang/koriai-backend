@@ -7,6 +7,7 @@ import com.heang.koriaibackend.domain.users.dto.UpdatePreferredModelRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdateUserProfileRequest;
 import com.heang.koriaibackend.domain.users.dto.UserResponse;
 import com.heang.koriaibackend.domain.users.service.UserService;
+import com.heang.koriaibackend.security.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -17,8 +18,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -35,6 +38,14 @@ public class UserController {
             return ApiResponse.error(Code.EMAIL_ALREADY_EXISTS, Map.of("message", "Email already registered"));
         }
         return ApiResponse.success(UserResponse.from(userService.create(req)));
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<UserResponse>> search(@RequestParam("q") String q,
+                                                  @RequestParam(name = "limit", defaultValue = "10") int limit) {
+        List<UserResponse> results = userService.search(q, SecurityUtils.currentUserId(), limit)
+                .stream().map(UserResponse::from).toList();
+        return ApiResponse.success(results);
     }
 
     @GetMapping("/{id}")

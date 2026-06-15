@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.interview.mapper.InterviewScriptMapper">
+
+    <resultMap id="InterviewScriptResultMap" type="com.heang.koriaibackend.domain.interview.model.InterviewScript">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="sections" column="sections"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByUserAndTopic" resultMap="InterviewScriptResultMap">
+        SELECT id, user_id, topic_id,
+               sections::text AS sections,
+               created_at, updated_at
+        FROM interview_scripts
+        WHERE user_id = #{userId}
+          AND topic_id = #{topicId}
+    </select>
+
+    <insert id="upsert" parameterType="com.heang.koriaibackend.domain.interview.model.InterviewScript">
+        INSERT INTO interview_scripts (user_id, topic_id, sections)
+        VALUES (#{userId}, #{topicId}, CAST(#{sections} AS jsonb))
+        ON CONFLICT (user_id, topic_id)
+        DO UPDATE SET sections   = CAST(#{sections} AS jsonb),
+                      updated_at = NOW()
+    </insert>
+
+</mapper>

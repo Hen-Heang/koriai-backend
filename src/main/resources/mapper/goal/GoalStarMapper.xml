@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.goal.mapper.GoalStarMapper">
+
+    <insert id="insertStar">
+        INSERT INTO goal_stars (user_id, goal_id)
+        VALUES (#{userId}, #{goalId})
+        ON CONFLICT (user_id, goal_id) DO NOTHING
+    </insert>
+
+    <delete id="deleteStar">
+        DELETE FROM goal_stars WHERE user_id = #{userId} AND goal_id = #{goalId}
+    </delete>
+
+    <select id="existsStar" resultType="int">
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM goal_stars WHERE user_id = #{userId} AND goal_id = #{goalId}
+        ) THEN 1 ELSE 0 END
+    </select>
+
+    <select id="findStarredGoals" resultMap="com.heang.koriaibackend.domain.goal.mapper.GoalMapper.GoalResultMap">
+        SELECT g.id, g.user_id, g.title, g.description, g.target_date, g.status,
+               g.metadata::text AS metadata, g.share_code, g.is_public, g.public_slug,
+               g.ai_prompt, g.theme_id, g.preferences::text AS preferences, g.created_at, g.updated_at
+        FROM goals g
+        JOIN goal_stars s ON s.goal_id = g.id
+        WHERE s.user_id = #{userId}
+        ORDER BY s.created_at DESC
+    </select>
+
+</mapper>

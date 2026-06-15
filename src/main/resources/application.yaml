@@ -24,12 +24,18 @@ openai:
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: com.heang.koriaibackend.domain
+  type-handlers-package: com.heang.koriaibackend.common.mybatis
   configuration:
     map-underscore-to-camel-case: true
 
 jwt:
   secret: ${JWT_SECRET:replace-this-with-a-long-random-256-bit-secret}
   access-token-expiration-ms: 3600000
+
+google:
+  # Comma-separated list of accepted Google OAuth client IDs (token audiences).
+  # Include the web client ID used by the frontend and, if reused, the Supabase Google client ID.
+  client-ids: ${GOOGLE_CLIENT_IDS:}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}

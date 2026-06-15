@@ -4,6 +4,7 @@ import com.heang.koriaibackend.domain.users.model.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 @Mapper
@@ -14,6 +15,11 @@ public interface UserMapper {
     Optional<User> findById(@Param("id") Long id);
 
     Optional<User> findByEmail(@Param("email") String email);
+
+    /** Search users by display name or email (excluding the caller), for invitations. */
+    List<User> searchByQuery(@Param("query") String query,
+                             @Param("excludeId") Long excludeId,
+                             @Param("limit") int limit);
 
     int updateProfile(@Param("id") Long id,
                       @Param("displayName") String displayName,

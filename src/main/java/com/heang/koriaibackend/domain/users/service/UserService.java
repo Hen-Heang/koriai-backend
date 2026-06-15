@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -38,6 +39,13 @@ public class UserService {
 
     public Optional<User> findById(Long id) {
         return userMapper.findById(id);
+    }
+
+    public List<User> search(String query, Long excludeId, int limit) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        return userMapper.searchByQuery(query.trim(), excludeId, Math.min(Math.max(limit, 1), 25));
     }
 
     @Transactional

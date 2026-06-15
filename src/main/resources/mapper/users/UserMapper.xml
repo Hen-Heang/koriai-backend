@@ -48,6 +48,15 @@
         WHERE email = #{email}
     </select>
 
+    <select id="searchByQuery" resultMap="UserResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM users
+        WHERE id &lt;&gt; #{excludeId}
+          AND (display_name ILIKE '%' || #{query} || '%' OR email ILIKE '%' || #{query} || '%')
+        ORDER BY display_name
+        LIMIT #{limit}
+    </select>
+
     <update id="updateProfile">
         UPDATE users
         SET display_name = #{displayName},

@@ -2,6 +2,7 @@ package com.heang.koriaibackend.domain.auth.controller;
 
 import com.heang.koriaibackend.common.api.ApiResponse;
 import com.heang.koriaibackend.domain.auth.dto.AuthResponse;
+import com.heang.koriaibackend.domain.auth.dto.GoogleLoginRequest;
 import com.heang.koriaibackend.domain.auth.dto.LoginRequest;
 import com.heang.koriaibackend.domain.auth.dto.RegisterRequest;
 import com.heang.koriaibackend.domain.auth.service.AuthService;
@@ -29,5 +30,10 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
         return ApiResponse.success(authService.login(req));
+    }
+
+    @PostMapping("/google")
+    public ApiResponse<AuthResponse> google(@Valid @RequestBody GoogleLoginRequest req) {
+        return ApiResponse.success(authService.loginWithGoogle(req));
     }
 }
