@@ -1,20 +1,24 @@
 package com.heang.koriaibackend.domain.goal.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.domain.goal.dto.GoalResponse;
 import com.heang.koriaibackend.domain.goal.model.Goal;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
-/** Builds GoalResponse, parsing the stored jsonb metadata text into a JSON object. */
+/**
+ * Builds GoalResponse, parsing the stored jsonb metadata text into a JSON object.
+ * Uses Jackson 3 ({@code tools.jackson}) — the same engine Spring Boot 4 uses for
+ * HTTP (de)serialization — so the {@code metadata} {@link JsonNode} on GoalResponse
+ * serializes natively instead of failing with "Type definition error: JsonNode".
+ */
 @Component
-@RequiredArgsConstructor
 public class GoalResponseAssembler {
 
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     public GoalResponse toResponse(Goal goal) {
         return GoalResponse.of(goal, parseMetadata(goal.getMetadata()));
