@@ -3,6 +3,8 @@ package com.heang.koriaibackend.ai;
 import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.openai.client.OpenAIClient;
 import com.openai.core.http.StreamResponse;
+import com.openai.models.Reasoning;
+import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.responses.Response;
@@ -19,6 +21,11 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class OpenAiService {
 
+    // gpt-5 reasoning models default to "medium" effort, which adds a slow
+    // internal reasoning pass before any output. Our tasks are short and
+    // structured, so request "minimal" effort to cut latency dramatically.
+    private static final long MAX_OUTPUT_TOKENS = 4096L;
+
     private final OpenAIClient client;
 
     @Value("${openai.model:gpt-5-mini}")
@@ -26,6 +33,12 @@ public class OpenAiService {
 
     @Value("${openai.mock-enabled:false}")
     private boolean mockEnabled;
+
+    // Reasoning params are only valid for gpt-5+ models; sending them to a
+    // gpt-4o model would be rejected, so guard on the model family.
+    private static boolean isReasoningModel(String model) {
+        return model != null && model.startsWith("gpt-5");
+    }
 
     public OpenAiResult generate(String prompt, String model) {
         String selectedModel = (model == null || model.isBlank()) ? defaultModel : model;
@@ -42,11 +55,14 @@ public class OpenAiService {
         }
 
         long start = System.currentTimeMillis();
-        ResponseCreateParams params = ResponseCreateParams.builder()
+        ResponseCreateParams.Builder paramsBuilder = ResponseCreateParams.builder()
                 .model(selectedModel)
                 .input(prompt)
-                .build();
-        Response response = client.responses().create(params);
+                .maxOutputTokens(MAX_OUTPUT_TOKENS);
+        if (isReasoningModel(selectedModel)) {
+            paramsBuilder.reasoning(Reasoning.builder().effort(ReasoningEffort.MINIMAL).build());
+        }
+        Response response = client.responses().create(paramsBuilder.build());
         long elapsed = System.currentTimeMillis() - start;
 
         StringBuilder text = new StringBuilder();
@@ -84,12 +100,15 @@ public class OpenAiService {
             return;
         }
 
-        ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
+        ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder()
                 .model(selectedModel)
                 .addUserMessage(prompt)
-                .build();
+                .maxCompletionTokens(MAX_OUTPUT_TOKENS);
+        if (isReasoningModel(selectedModel)) {
+            paramsBuilder.reasoningEffort(ReasoningEffort.MINIMAL);
+        }
 
-        try (StreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params)) {
+        try (StreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(paramsBuilder.build())) {
             stream.stream().forEach(chunk ->
                     chunk.choices().forEach(choice ->
                             choice.delta().content().ifPresent(onToken)
