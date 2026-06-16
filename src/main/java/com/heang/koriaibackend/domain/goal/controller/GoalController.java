@@ -2,6 +2,7 @@ package com.heang.koriaibackend.domain.goal.controller;
 
 import com.heang.koriaibackend.common.api.ApiResponse;
 import com.heang.koriaibackend.domain.goal.dto.CreateGoalRequest;
+import com.heang.koriaibackend.domain.goal.dto.GenerateTasksRequest;
 import com.heang.koriaibackend.domain.goal.dto.GoalResponse;
 import com.heang.koriaibackend.domain.goal.dto.TaskResponse;
 import com.heang.koriaibackend.domain.goal.dto.UpdateGoalRequest;
@@ -43,6 +44,13 @@ public class GoalController {
     @GetMapping("/{id}/tasks")
     public ApiResponse<List<TaskResponse>> tasks(@PathVariable UUID id) {
         return ApiResponse.success(taskService.listByGoal(SecurityUtils.currentUserId(), id));
+    }
+
+    /** AI-generate tasks for a goal and insert them; returns the created tasks. */
+    @PostMapping("/{id}/generate-tasks")
+    public ApiResponse<List<TaskResponse>> generateTasks(@PathVariable UUID id,
+                                                         @RequestBody(required = false) GenerateTasksRequest req) {
+        return ApiResponse.success(taskService.generateTasks(SecurityUtils.currentUserId(), id, req));
     }
 
     @PostMapping

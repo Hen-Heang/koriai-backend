@@ -104,4 +104,48 @@
         DELETE FROM tasks WHERE id = #{id}
     </delete>
 
+    <!--
+      Due reminders (ported from Orbit's get_due_task_reminders RPC).
+      A task's absolute start instant is its wall-clock daily time interpreted in
+      the owner's timezone: (date(start_date in tz) + daily_start_time) in tz.
+      We remind once the (start_instant - offset) window has opened but the task
+      hasn't started yet. reminder_sent_at (stamped by markReminderSent) dedupes,
+      so a missed cron minute still fires on the next run rather than being lost.
+    -->
+    <resultMap id="DueTaskReminderMap" type="com.heang.koriaibackend.domain.goal.model.DueTaskReminder">
+        <id property="taskId" column="task_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="goalId" column="goal_id"/>
+    </resultMap>
+
+    <select id="findDueReminders" resultMap="DueTaskReminderMap">
+        WITH computed AS (
+            SELECT
+                t.id      AS task_id,
+                t.user_id AS user_id,
+                COALESCE(NULLIF(TRIM(t.title), ''), LEFT(t.description, 80), 'Task') AS title,
+                t.goal_id AS goal_id,
+                u.reminder_offset_minutes AS offset_min,
+                (
+                    (date(t.start_date AT TIME ZONE COALESCE(u.timezone, 'UTC')) + t.daily_start_time)
+                        AT TIME ZONE COALESCE(u.timezone, 'UTC')
+                ) AS start_instant
+            FROM tasks t
+            JOIN users u ON u.id = t.user_id
+            WHERE t.completed = false
+              AND COALESCE(t.is_anytime, false) = false
+              AND t.daily_start_time IS NOT NULL
+              AND t.reminder_sent_at IS NULL
+        )
+        SELECT task_id, user_id, title, goal_id
+        FROM computed
+        WHERE start_instant > now()
+          AND (start_instant - make_interval(mins => COALESCE(offset_min, 30))) &lt;= now()
+    </select>
+
+    <update id="markReminderSent">
+        UPDATE tasks SET reminder_sent_at = now() WHERE id = #{id}
+    </update>
+
 </mapper>

@@ -1,20 +1,30 @@
 package com.heang.koriaibackend.domain.goal.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heang.koriaibackend.ai.OpenAiService;
+import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.domain.goal.dto.CreateTaskRequest;
+import com.heang.koriaibackend.domain.goal.dto.GenerateTasksRequest;
 import com.heang.koriaibackend.domain.goal.dto.TaskResponse;
 import com.heang.koriaibackend.domain.goal.dto.UpdateTaskRequest;
 import com.heang.koriaibackend.domain.goal.mapper.GoalMapper;
 import com.heang.koriaibackend.domain.goal.mapper.GoalMemberMapper;
 import com.heang.koriaibackend.domain.goal.mapper.TaskMapper;
+import com.heang.koriaibackend.domain.goal.model.Goal;
 import com.heang.koriaibackend.domain.goal.model.Task;
+import com.heang.koriaibackend.domain.usage.service.ApiUsageLogService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +34,7 @@ import java.util.UUID;
  *   a task is writable by its owner, or by the owner/members of its goal.
  *   a standalone task (null goal) is private to its owner.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaskService {
@@ -32,6 +43,12 @@ public class TaskService {
     private final GoalMapper goalMapper;
     private final GoalMemberMapper goalMemberMapper;
     private final GoalNotificationService notificationService;
+    private final OpenAiService openAiService;
+    private final ApiUsageLogService apiUsageLogService;
+    private final ObjectMapper objectMapper;
+
+    @Value("${openai.model:gpt-5-mini}")
+    private String aiModel;
 
     private static String taskUrl(UUID goalId) {
         return goalId != null ? "/goals/" + goalId : "/goals/calendar";
@@ -78,6 +95,65 @@ public class TaskService {
         taskMapper.insert(task);
         notificationService.notifySelf(userId, "task_created", task.getGoalId(), taskUrl(task.getGoalId()));
         return TaskResponse.of(taskMapper.findById(task.getId()));
+    }
+
+    /**
+     * AI-generate a set of tasks for a goal and insert them, spread across the
+     * goal's date window. Ported from Orbit's generate-tasks edge function;
+     * reuses KoriAI's existing {@link OpenAiService}. Returns the created tasks.
+     */
+    @Transactional
+    public List<TaskResponse> generateTasks(Long userId, UUID goalId, GenerateTasksRequest req) {
+        requireGoalWrite(userId, goalId);
+        Goal goal = goalMapper.findById(goalId);
+        if (goal == null) {
+            throw new BusinessException(Code.NOT_FOUND);
+        }
+
+        int count = req != null && req.count() != null ? Math.max(1, Math.min(14, req.count())) : 7;
+        OffsetDateTime start = goalStart(goal);
+        int windowDays = goalWindowDays(goal, start);
+        String goalType = metadataText(goal, "goal_type", "general");
+
+        String prompt = buildTaskPrompt(goal.getTitle(), goal.getDescription(), goalType,
+                windowDays, count, req != null ? req.note() : null);
+
+        OpenAiResult result = openAiService.generate(prompt, aiModel);
+        apiUsageLogService.log(userId, "GOAL_TASKGEN", result);
+
+        List<GeneratedTask> generated = parseGeneratedTasks(result.content());
+        if (generated.isEmpty()) {
+            throw new BusinessException(Code.BAD_REQUEST, "The AI did not return any tasks. Please try again.");
+        }
+
+        List<TaskResponse> created = new ArrayList<>();
+        for (GeneratedTask g : generated) {
+            int dayOffset = Math.max(0, Math.min(windowDays - 1, g.dayOffset));
+            OffsetDateTime day = start.plusDays(dayOffset);
+            LocalTime startTime = parseTimeSafe(g.dailyStartTime);
+            LocalTime endTime = parseTimeSafe(g.dailyEndTime);
+            boolean anytime = startTime == null;
+            String title = (g.title != null && !g.title.isBlank()) ? g.title.trim() : "Untitled task";
+
+            Task task = Task.builder()
+                    .id(UUID.randomUUID())
+                    .goalId(goalId)
+                    .userId(userId)
+                    .title(title)
+                    .description(g.description)
+                    .completed(false)
+                    .startDate(day)
+                    .endDate(day)
+                    .dailyStartTime(anytime ? null : startTime)
+                    .dailyEndTime(anytime ? null : endTime)
+                    .anytime(anytime)
+                    .tags(Collections.emptyList())
+                    .updatedBy(userId)
+                    .build();
+            taskMapper.insert(task);
+            created.add(TaskResponse.of(taskMapper.findById(task.getId())));
+        }
+        return created;
     }
 
     @Transactional
@@ -146,6 +222,118 @@ public class TaskService {
     private boolean canWriteGoal(Long userId, UUID goalId) {
         return goalMapper.countOwner(goalId, userId) > 0
                 || goalMemberMapper.countMembership(goalId, userId) > 0;
+    }
+
+    // ── AI task generation helpers ──────────────────────────────────────────
+
+    /** Goal start instant: metadata.start_date, else createdAt, else now (UTC midnight). */
+    private OffsetDateTime goalStart(Goal goal) {
+        String startDate = metadataText(goal, "start_date", null);
+        if (startDate != null) {
+            OffsetDateTime parsed = parseTimestamp(startDate);
+            if (parsed != null) return parsed;
+        }
+        return goal.getCreatedAt() != null ? goal.getCreatedAt() : OffsetDateTime.now();
+    }
+
+    /** Days from start to target_date (clamped 1..60); 14 when there's no deadline. */
+    private int goalWindowDays(Goal goal, OffsetDateTime start) {
+        if (goal.getTargetDate() == null) return 14;
+        long days = java.time.Duration.between(start, goal.getTargetDate()).toDays();
+        return (int) Math.max(1, Math.min(60, days));
+    }
+
+    /** Read a string field from the goal's JSONB metadata, or a default. */
+    private String metadataText(Goal goal, String field, String fallback) {
+        if (goal.getMetadata() == null || goal.getMetadata().isBlank()) return fallback;
+        try {
+            JsonNode node = objectMapper.readTree(goal.getMetadata()).get(field);
+            return (node != null && !node.isNull()) ? node.asText() : fallback;
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private String buildTaskPrompt(String title, String description, String goalType,
+                                   int windowDays, int count, String note) {
+        return """
+                You are a goal-planning assistant. Break the user's goal into %d concrete, actionable tasks.
+
+                Goal title: %s
+                Description: %s
+                Goal type: %s
+                Timeframe: %d days, starting at day 0.
+                %s
+
+                Rules:
+                - Each task is a single, specific, achievable action (imperative title, max ~60 chars).
+                - Spread tasks across the timeframe; order them by day_offset (0..%d).
+                - daily_start_time / daily_end_time are optional "HH:MM" 24h strings; use null for flexible tasks.
+
+                Respond with ONLY valid JSON, no prose:
+                {"tasks":[{"title":"...","description":"one sentence","day_offset":0,"daily_start_time":"09:00","daily_end_time":"10:00"}]}
+                """
+                .formatted(
+                        count,
+                        title != null ? title : "",
+                        description != null && !description.isBlank() ? description : "(none)",
+                        goalType,
+                        windowDays,
+                        note != null && !note.isBlank() ? "Extra instructions: " + note : "",
+                        windowDays - 1);
+    }
+
+    private List<GeneratedTask> parseGeneratedTasks(String content) {
+        List<GeneratedTask> out = new ArrayList<>();
+        if (content == null || content.isBlank()) return out;
+        try {
+            String cleaned = content.trim();
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start == -1 || end == -1) return out;
+            JsonNode tasks = objectMapper.readTree(cleaned.substring(start, end + 1)).get("tasks");
+            if (tasks == null || !tasks.isArray()) return out;
+            for (JsonNode t : tasks) {
+                GeneratedTask g = new GeneratedTask();
+                g.title = text(t, "title");
+                g.description = text(t, "description");
+                JsonNode off = t.get("day_offset");
+                g.dayOffset = (off != null && off.isNumber()) ? off.asInt() : 0;
+                g.dailyStartTime = text(t, "daily_start_time");
+                g.dailyEndTime = text(t, "daily_end_time");
+                if (g.title != null && !g.title.isBlank()) out.add(g);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse AI task generation output: {}", e.getMessage());
+        }
+        return out;
+    }
+
+    private static String text(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asText() : null;
+    }
+
+    /** Lenient "HH:MM"/"H:MM" parse for AI output; null on blank/invalid (no throw). */
+    private static LocalTime parseTimeSafe(String value) {
+        if (value == null || value.isBlank() || "null".equalsIgnoreCase(value.trim())) return null;
+        try {
+            String[] parts = value.trim().split(":");
+            int h = Integer.parseInt(parts[0].trim());
+            int m = parts.length > 1 ? Integer.parseInt(parts[1].trim()) : 0;
+            if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+            return LocalTime.of(h, m);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static final class GeneratedTask {
+        String title;
+        String description;
+        int dayOffset;
+        String dailyStartTime;
+        String dailyEndTime;
     }
 
     private OffsetDateTime parseTimestamp(String value) {

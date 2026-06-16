@@ -1,5 +1,6 @@
 package com.heang.koriaibackend.domain.goal.mapper;
 
+import com.heang.koriaibackend.domain.goal.model.DueTaskReminder;
 import com.heang.koriaibackend.domain.goal.model.Task;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -34,4 +35,13 @@ public interface TaskMapper {
                         @Param("updatedBy") Long updatedBy);
 
     int deleteById(@Param("id") UUID id);
+
+    /**
+     * Timed, incomplete, not-yet-reminded tasks whose start is within the owner's
+     * reminder-offset window (and still upcoming). Drives the per-minute reminder job.
+     */
+    List<DueTaskReminder> findDueReminders();
+
+    /** Fire-once stamp so a task is reminded at most one time. */
+    int markReminderSent(@Param("id") UUID id);
 }
