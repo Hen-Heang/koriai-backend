@@ -11,12 +11,17 @@
         <result property="displayName" column="display_name"/>
         <result property="koreanLevel" column="korean_level"/>
         <result property="preferredModel" column="preferred_model"/>
+        <result property="hasProfileImage" column="has_profile_image"/>
+        <result property="profileImageContentType" column="profile_image_content_type"/>
+        <result property="profileImageData" column="profile_image_data"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <sql id="BaseColumns">
-        id, email, password_hash, display_name, korean_level, preferred_model, created_at, updated_at
+        id, email, password_hash, display_name, korean_level, preferred_model,
+        (profile_image_data IS NOT NULL) AS has_profile_image,
+        created_at, updated_at
     </sql>
 
     <insert id="insert" parameterType="com.heang.koriaibackend.domain.users.model.User"
@@ -71,6 +76,20 @@
             updated_at = NOW()
         WHERE id = #{id}
     </update>
+
+    <update id="updateProfileImage">
+        UPDATE users
+        SET profile_image_content_type = #{contentType},
+            profile_image_data = #{data},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="findProfileImage" resultMap="UserResultMap">
+        SELECT id, profile_image_content_type, profile_image_data
+        FROM users
+        WHERE id = #{id}
+    </select>
 
     <delete id="deleteById">
         DELETE FROM users WHERE id = #{id}

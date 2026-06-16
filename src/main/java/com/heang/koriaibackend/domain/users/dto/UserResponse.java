@@ -10,6 +10,7 @@ public record UserResponse(
         String displayName,
         String koreanLevel,
         String preferredModel,
+        boolean hasProfileImage,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
@@ -20,6 +21,7 @@ public record UserResponse(
                 user.getDisplayName(),
                 user.getKoreanLevel(),
                 user.getPreferredModel(),
+                user.isHasProfileImage(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

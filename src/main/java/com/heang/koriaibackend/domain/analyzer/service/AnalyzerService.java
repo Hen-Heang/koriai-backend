@@ -28,7 +28,7 @@ public class AnalyzerService {
     private final ApiUsageLogService apiUsageLogService;
     private final ObjectMapper objectMapper;
 
-    @Value("${openai.model:gpt-4o-mini}")
+    @Value("${openai.model:gpt-5-mini}")
     private String model;
 
     @Transactional

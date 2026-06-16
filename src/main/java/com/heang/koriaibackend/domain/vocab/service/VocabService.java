@@ -37,7 +37,7 @@ public class VocabService {
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
 
-    @Value("${openai.model:gpt-4o-mini}")
+    @Value("${openai.model:gpt-5-mini}")
     private String model;
 
     public List<VocabItemResponse> getSavedWords(Long userId) {

@@ -64,6 +64,8 @@ public class ChatService {
         Conversation conversation = requireOwnedConversation(userId, conversationId);
         User user = userMapper.findById(userId).orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "User not found"));
 
+        String history = recentHistory(conversationId);
+
         Message userMessage = Message.builder()
                 .conversationId(conversationId)
                 .role("USER")
@@ -73,7 +75,8 @@ public class ChatService {
         messageMapper.insert(userMessage);
         conversationMapper.incrementMessageCount(conversationId);
 
-        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(), user.getKoreanLevel());
+        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(),
+                user.getKoreanLevel(), user.getDisplayName(), history);
         OpenAiResult result = openAiService.generate(prompt, conversation.getModelUsed());
 
         Message assistantMessage = Message.builder()
@@ -93,6 +96,8 @@ public class ChatService {
         Conversation conversation = requireOwnedConversation(userId, conversationId);
         User user = userMapper.findById(userId).orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "User not found"));
 
+        String history = recentHistory(conversationId);
+
         Message userMessage = Message.builder()
                 .conversationId(conversationId)
                 .role("USER")
@@ -102,7 +107,8 @@ public class ChatService {
         messageMapper.insert(userMessage);
         conversationMapper.incrementMessageCount(conversationId);
 
-        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(), user.getKoreanLevel());
+        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(),
+                user.getKoreanLevel(), user.getDisplayName(), history);
         String modelUsed = conversation.getModelUsed();
 
         SseEmitter emitter = new SseEmitter(120_000L);
@@ -153,6 +159,24 @@ public class ChatService {
         });
 
         return emitter;
+    }
+
+    // Builds a chronological transcript of the last few turns so the coach has
+    // memory of the conversation. Called BEFORE the new user message is inserted.
+    private String recentHistory(Long conversationId) {
+        int count = messageMapper.countByConversationId(conversationId);
+        if (count == 0) {
+            return null;
+        }
+        int limit = 10;
+        int offset = Math.max(0, count - limit);
+        List<Message> messages = messageMapper.findByConversationId(conversationId, limit, offset);
+        StringBuilder sb = new StringBuilder("Conversation so far:\n");
+        for (Message message : messages) {
+            String speaker = "USER".equalsIgnoreCase(message.getRole()) ? "Learner" : "KoriAI";
+            sb.append(speaker).append(": ").append(message.getContent()).append("\n");
+        }
+        return sb.toString().trim();
     }
 
     private Conversation requireOwnedConversation(Long userId, Long conversationId) {

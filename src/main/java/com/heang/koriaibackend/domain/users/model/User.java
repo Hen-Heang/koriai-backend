@@ -20,6 +20,9 @@ public class User {
     private String displayName;
     private String koreanLevel;
     private String preferredModel;
+    private String profileImageContentType;
+    private byte[] profileImageData;
+    private boolean hasProfileImage;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

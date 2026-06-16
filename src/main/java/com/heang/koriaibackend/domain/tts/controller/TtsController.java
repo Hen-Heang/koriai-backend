@@ -65,7 +65,12 @@ public class TtsController {
                 "model", "gpt-4o-mini-tts",
                 "input", text,
                 "voice", voice,
-                "instructions", "Speak as a native Korean speaker with natural, clear pronunciation at a normal conversational pace. Read any non-Korean words in their own language."
+                "instructions", "Speak as a native Korean speaker using standard Seoul (표준어) pronunciation. "
+                        + "Articulate accurately: clear final consonants (받침), correct tense/aspirated consonant "
+                        + "distinctions (예: ㄲ/ㄱ, ㅋ/ㄱ), accurate vowel quality, and natural liaison (연음) between "
+                        + "syllables. Use natural sentence intonation, rhythm, and stress — warm and conversational, "
+                        + "not robotic or word-by-word — at a normal, easy-to-follow conversational pace. "
+                        + "Pronounce any non-Korean words or proper nouns naturally in their own language."
         );
 
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);

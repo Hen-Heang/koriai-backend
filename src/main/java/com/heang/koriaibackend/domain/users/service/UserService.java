@@ -67,6 +67,20 @@ public class UserService {
     }
 
     @Transactional
+    public Optional<User> updateProfileImage(Long id, String contentType, byte[] data) {
+        int updated = userMapper.updateProfileImage(id, contentType, data);
+        if (updated == 0) {
+            return Optional.empty();
+        }
+        return userMapper.findById(id);
+    }
+
+    public Optional<User> getProfileImage(Long id) {
+        return userMapper.findProfileImage(id)
+                .filter(user -> user.getProfileImageData() != null && user.getProfileImageData().length > 0);
+    }
+
+    @Transactional
     public boolean deleteById(Long id) {
         return userMapper.deleteById(id) > 0;
     }

@@ -21,7 +21,7 @@ public class OpenAiService {
 
     private final OpenAIClient client;
 
-    @Value("${openai.model:gpt-4o-mini}")
+    @Value("${openai.model:gpt-5-mini}")
     private String defaultModel;
 
     @Value("${openai.mock-enabled:false}")

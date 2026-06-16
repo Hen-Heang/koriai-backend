@@ -27,5 +27,12 @@ public interface UserMapper {
 
     int updatePreferredModel(@Param("id") Long id, @Param("preferredModel") String preferredModel);
 
+    int updateProfileImage(@Param("id") Long id,
+                           @Param("contentType") String contentType,
+                           @Param("data") byte[] data);
+
+    /** Loads only the image bytes + content type (heavy column kept out of normal lookups). */
+    Optional<User> findProfileImage(@Param("id") Long id);
+
     int deleteById(@Param("id") Long id);
 }
