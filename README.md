@@ -11,7 +11,7 @@ REST API backend for KoriAI — an AI-powered Korean language learning platform.
 | Database | PostgreSQL |
 | ORM | MyBatis + Flyway migrations |
 | Auth | JWT (stateless) |
-| AI | OpenAI API (chat, TTS, corrections, vocab) |
+| AI | OpenAI API — `gpt-5-mini` (chat, corrections, vocab) + `gpt-4o-mini-tts` (TTS) |
 | Deployment | Railway (Docker) |
 
 ---
@@ -157,6 +157,21 @@ data: {"message": "Streaming failed"}
 
 ---
 
+### Users `/api/users`
+
+| Method | Path | Body / Params | Description |
+|--------|------|--------------|-------------|
+| GET | `/search` | `?q=&limit=10` | Search users by name/email (excludes self) |
+| GET | `/{id}` | — | Get a user profile |
+| PUT | `/{id}/profile` | `{displayName, koreanLevel}` | Update profile |
+| PUT | `/{id}/preferred-model` | `{preferredModel}` | Set the OpenAI model used for this user's chats |
+| POST | `/{id}/profile-image` | `multipart/form-data` field `file` | Upload a profile image (own account only) |
+| GET | `/{id}/profile-image` | — | Stream the raw image bytes (`Cache-Control: private, max-age=3600`) |
+
+**Profile image rules:** max **2 MB**, content type must be `image/jpeg`, `image/png`, or `image/webp`. The image is stored in Postgres; `UserResponse.hasProfileImage` indicates whether one is set without transferring the bytes.
+
+---
+
 ### Health `/api/health`
 
 | Method | Path | Description |
@@ -169,8 +184,10 @@ data: {"message": "Streaming failed"}
 
 ### User
 ```
-id, email, passwordHash, displayName, koreanLevel, preferredModel, createdAt, updatedAt
+id, email, passwordHash, displayName, koreanLevel, preferredModel,
+profileImageContentType, profileImageData (bytea), hasProfileImage, createdAt, updatedAt
 ```
+> `profileImageData` is only loaded by the profile-image endpoint; normal lookups carry just the `hasProfileImage` flag.
 
 ### Conversation
 ```

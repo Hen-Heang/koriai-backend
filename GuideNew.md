@@ -63,7 +63,7 @@ Examples:
 
 ## AI Integration
 
-* OpenAI API
+* OpenAI API (default model: `gpt-5-mini`; `gpt-4o-mini-tts` for speech)
 
 Use AI for:
 
@@ -103,6 +103,8 @@ User Profile:
 * Occupation
 * Years of Experience
 * Learning Goal
+* Profile Image / Avatar (JPEG, PNG, or WebP, max 2 MB)
+* Preferred AI Model
 
 ---
 
@@ -168,6 +170,9 @@ AI should:
 * Explain politeness level
 * Provide workplace examples
 * Provide developer examples
+* Remember the recent conversation history for context (no repetition)
+* Include Revised Romanization for beginner/intermediate learners
+* End with a natural follow-up question in Korean to keep the learner practicing
 
 ---
 
