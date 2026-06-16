@@ -5,6 +5,10 @@ public final class PromptTemplates {
     private PromptTemplates() {
     }
 
+    private static String orDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
     public static String chatPrompt(String userMessage, String conversationType, String koreanLevel,
                                     String learnerName, String history) {
         return """
@@ -25,10 +29,10 @@ public final class PromptTemplates {
                 The learner just said:
                 %s
                 """.formatted(
-                        learnerName == null || learnerName.isBlank() ? "the learner" : learnerName,
-                        koreanLevel == null || koreanLevel.isBlank() ? "unspecified" : koreanLevel,
+                        orDefault(learnerName, "the learner"),
+                        orDefault(koreanLevel, "unspecified"),
                         conversationType,
-                        history == null || history.isBlank() ? "(This is the start of the conversation.)" : history,
+                        orDefault(history, "(This is the start of the conversation.)"),
                         userMessage);
     }
 
@@ -105,7 +109,7 @@ public final class PromptTemplates {
                 - "phrase" must be natural Korean a real Korean developer would actually say or write.
                 - Provide 2-3 similar expressions. If none fit, return an empty array [].
                 - All explanations must be in English.
-                """.formatted(level, avoidList == null || avoidList.isBlank() ? "(none)" : avoidList);
+                """.formatted(level, orDefault(avoidList, "(none)"));
     }
 
     public static String messageGeneratorPrompt(String intent, String category, String level) {
@@ -131,7 +135,7 @@ public final class PromptTemplates {
                 - Provide exactly 3 variations ordered from most formal to most casual.
                 - Each "korean" must be natural workplace Korean a real Korean developer would use.
                 - All explanations must be in English.
-                """.formatted(intent, category == null || category.isBlank() ? "General" : category, level);
+                """.formatted(intent, orDefault(category, "General"), level);
     }
 
     public static String listeningLessonPrompt(String topic, String level) {
@@ -284,7 +288,7 @@ public final class PromptTemplates {
 
                 Analyze this Korean workplace message:
                 %s
-                """.formatted(source == null || source.isBlank() ? "(unspecified)" : source, text);
+                """.formatted(orDefault(source, "(unspecified)"), text);
     }
 
 }

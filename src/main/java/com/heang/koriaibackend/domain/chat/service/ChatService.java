@@ -35,6 +35,8 @@ public class ChatService {
     private final ApiUsageLogService apiUsageLogService;
     private final ObjectMapper objectMapper;
 
+    private static final int RECENT_HISTORY_LIMIT = 10;
+
     @Transactional
     public Conversation createConversation(Long userId, CreateChatConversationRequest req) {
         User user = userMapper.findById(userId).orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "User not found"));
@@ -61,23 +63,9 @@ public class ChatService {
 
     @Transactional
     public ChatSendResponse sendMessage(Long userId, String text, Long conversationId) {
-        Conversation conversation = requireOwnedConversation(userId, conversationId);
-        User user = userMapper.findById(userId).orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "User not found"));
-
-        String history = recentHistory(conversationId);
-
-        Message userMessage = Message.builder()
-                .conversationId(conversationId)
-                .role("USER")
-                .content(text.trim())
-                .tokensUsed(0)
-                .build();
-        messageMapper.insert(userMessage);
-        conversationMapper.incrementMessageCount(conversationId);
-
-        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(),
-                user.getKoreanLevel(), user.getDisplayName(), history);
-        OpenAiResult result = openAiService.generate(prompt, conversation.getModelUsed());
+        ChatTurn turn = prepareTurn(userId, text, conversationId);
+        Message userMessage = turn.userMessage();
+        OpenAiResult result = openAiService.generate(turn.prompt(), turn.modelUsed());
 
         Message assistantMessage = Message.builder()
                 .conversationId(conversationId)
@@ -93,23 +81,10 @@ public class ChatService {
     }
 
     public SseEmitter streamMessage(Long userId, String text, Long conversationId) {
-        Conversation conversation = requireOwnedConversation(userId, conversationId);
-        User user = userMapper.findById(userId).orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "User not found"));
-
-        String history = recentHistory(conversationId);
-
-        Message userMessage = Message.builder()
-                .conversationId(conversationId)
-                .role("USER")
-                .content(text.trim())
-                .tokensUsed(0)
-                .build();
-        messageMapper.insert(userMessage);
-        conversationMapper.incrementMessageCount(conversationId);
-
-        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(),
-                user.getKoreanLevel(), user.getDisplayName(), history);
-        String modelUsed = conversation.getModelUsed();
+        ChatTurn turn = prepareTurn(userId, text, conversationId);
+        Message userMessage = turn.userMessage();
+        String prompt = turn.prompt();
+        String modelUsed = turn.modelUsed();
 
         SseEmitter emitter = new SseEmitter(120_000L);
         
@@ -161,18 +136,43 @@ public class ChatService {
         return emitter;
     }
 
+    // Shared setup for both the sync and streaming chat paths: loads the conversation
+    // history, persists the user's message, and builds the coaching prompt.
+    private ChatTurn prepareTurn(Long userId, String text, Long conversationId) {
+        Conversation conversation = requireOwnedConversation(userId, conversationId);
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "User not found"));
+
+        String history = recentHistory(conversationId);
+
+        Message userMessage = Message.builder()
+                .conversationId(conversationId)
+                .role("USER")
+                .content(text.trim())
+                .tokensUsed(0)
+                .build();
+        messageMapper.insert(userMessage);
+        conversationMapper.incrementMessageCount(conversationId);
+
+        String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(),
+                user.getKoreanLevel(), user.getDisplayName(), history);
+        return new ChatTurn(userMessage, prompt, conversation.getModelUsed());
+    }
+
+    private record ChatTurn(Message userMessage, String prompt, String modelUsed) {
+    }
+
     // Builds a chronological transcript of the last few turns so the coach has
     // memory of the conversation. Called BEFORE the new user message is inserted.
     private String recentHistory(Long conversationId) {
-        int count = messageMapper.countByConversationId(conversationId);
-        if (count == 0) {
+        // Fetch the newest turns directly (DESC + LIMIT), then restore chronological order.
+        List<Message> messages = messageMapper.findRecentByConversationId(conversationId, RECENT_HISTORY_LIMIT);
+        if (messages.isEmpty()) {
             return null;
         }
-        int limit = 10;
-        int offset = Math.max(0, count - limit);
-        List<Message> messages = messageMapper.findByConversationId(conversationId, limit, offset);
         StringBuilder sb = new StringBuilder("Conversation so far:\n");
-        for (Message message : messages) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            Message message = messages.get(i);
             String speaker = "USER".equalsIgnoreCase(message.getRole()) ? "Learner" : "KoriAI";
             sb.append(speaker).append(": ").append(message.getContent()).append("\n");
         }

@@ -18,7 +18,8 @@ public interface MessageMapper {
                                        @Param("limit") int limit,
                                        @Param("offset") int offset);
 
-    int countByConversationId(@Param("conversationId") Long conversationId);
+    List<Message> findRecentByConversationId(@Param("conversationId") Long conversationId,
+                                             @Param("limit") int limit);
 
     int deleteByConversationId(@Param("conversationId") Long conversationId);
 }
