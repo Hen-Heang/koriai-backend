@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heang.koriaibackend.domain.push.mapper.PushSubscriptionMapper">
+
+    <resultMap id="PushSubscriptionResultMap" type="com.heang.koriaibackend.domain.push.model.PushSubscription">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="endpoint" column="endpoint"/>
+        <result property="p256dh" column="p256dh"/>
+        <result property="auth" column="auth"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="upsert" parameterType="com.heang.koriaibackend.domain.push.model.PushSubscription">
+        INSERT INTO user_push_subscriptions (id, user_id, endpoint, p256dh, auth)
+        VALUES (#{id}, #{userId}, #{endpoint}, #{p256dh}, #{auth})
+        ON CONFLICT (endpoint)
+        DO UPDATE SET user_id = EXCLUDED.user_id,
+                      p256dh  = EXCLUDED.p256dh,
+                      auth    = EXCLUDED.auth
+    </insert>
+
+    <select id="findByUserId" resultMap="PushSubscriptionResultMap">
+        SELECT id, user_id, endpoint, p256dh, auth, created_at
+        FROM user_push_subscriptions
+        WHERE user_id = #{userId}
+    </select>
+
+    <delete id="deleteByEndpoint">
+        DELETE FROM user_push_subscriptions WHERE endpoint = #{endpoint}
+    </delete>
+
+</mapper>

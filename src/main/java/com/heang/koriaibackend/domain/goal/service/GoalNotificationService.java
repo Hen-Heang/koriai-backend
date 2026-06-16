@@ -7,6 +7,8 @@ import com.heang.koriaibackend.domain.goal.dto.GoalNotificationResponse;
 import com.heang.koriaibackend.domain.goal.mapper.GoalMemberMapper;
 import com.heang.koriaibackend.domain.goal.mapper.GoalNotificationMapper;
 import com.heang.koriaibackend.domain.goal.model.GoalNotification;
+import com.heang.koriaibackend.domain.push.service.PushDispatcher;
+import com.heang.koriaibackend.domain.push.service.PushMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class GoalNotificationService {
 
     private final GoalNotificationMapper notificationMapper;
     private final GoalMemberMapper goalMemberMapper;
+    private final PushDispatcher pushDispatcher;
 
     public List<GoalNotificationResponse> list(Long userId, boolean onlyUnread) {
         return notificationMapper.findEnrichedByReceiver(userId, onlyUnread).stream()
@@ -62,6 +65,8 @@ public class GoalNotificationService {
                 .invitationStatus(STATUS_PENDING)
                 .build();
         notificationMapper.insert(n);
+        pushDispatcher.dispatch(req.receiverUserId(),
+                new PushMessage("New goal invitation", "You've been invited to join a goal.", "/goals"));
         return GoalNotificationResponse.of(notificationMapper.findById(n.getId()));
     }
 
@@ -109,8 +114,18 @@ public class GoalNotificationService {
                     .url(url)
                     .build();
             notificationMapper.insert(n);
+            pushDispatcher.dispatch(userId, toPushMessage(type, url));
         } catch (Exception e) {
             log.warn("Failed to create self-notification (type={}, goalId={})", type, goalId, e);
         }
+    }
+
+    /** Map a self-notification type to a human-readable push payload. */
+    private static PushMessage toPushMessage(String type, String url) {
+        return switch (type) {
+            case "task_created" -> new PushMessage("Task created", "You added a new task.", url);
+            case "task_updated" -> new PushMessage("Task completed 🎉", "You completed a task.", url);
+            default -> new PushMessage("Goal update", "You have a new update.", url);
+        };
     }
 }

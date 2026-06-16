@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                         // Permit all requests to /api/auth/**, /api/health, and /error endpoints.
                         .requestMatchers("/api/auth/**", "/api/health", "/error",
+                                "/api/telegram/webhook",
                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Any other request must be authenticated.
                         .anyRequest().authenticated())
