@@ -38,7 +38,7 @@ class AuthControllerTest {
     @Test
     void register_ShouldReturnToken() throws Exception {
         AuthResponse response = new AuthResponse(
-                "token-123", "Bearer", 1L, "user@test.com", "User", "BEGINNER", "gpt-5-mini"
+                "token-123", "refresh-123", "Bearer", 1L, "user@test.com", "User", "BEGINNER", "gpt-5-mini"
         );
         when(authService.register(any())).thenReturn(response);
 
@@ -58,7 +58,7 @@ class AuthControllerTest {
     @Test
     void login_ShouldReturnToken() throws Exception {
         AuthResponse response = new AuthResponse(
-                "token-456", "Bearer", 1L, "user@test.com", "User", "BEGINNER", "gpt-5-mini"
+                "token-456", "refresh-456", "Bearer", 1L, "user@test.com", "User", "BEGINNER", "gpt-5-mini"
         );
         when(authService.login(any())).thenReturn(response);
 

@@ -33,3 +33,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local helper scripts (may contain/derive prod connection details) ###
+run-prod.ps1
+prod-boot.log
+boot-test.log

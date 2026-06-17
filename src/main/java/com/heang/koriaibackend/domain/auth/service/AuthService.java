@@ -6,6 +6,7 @@ import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.domain.auth.dto.AuthResponse;
 import com.heang.koriaibackend.domain.auth.dto.GoogleLoginRequest;
 import com.heang.koriaibackend.domain.auth.dto.LoginRequest;
+import com.heang.koriaibackend.domain.auth.dto.RefreshTokenRequest;
 import com.heang.koriaibackend.domain.auth.dto.RegisterRequest;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;
@@ -27,6 +28,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${openai.model:gpt-5-mini}")
     private String defaultPreferredModel;
@@ -47,8 +49,7 @@ public class AuthService {
                 .build();
         userMapper.insert(user);
         User savedUser = userMapper.findById(user.getId()).orElseThrow(() -> new BusinessException(Code.REGISTRATION_FAILED));
-        String accessToken = jwtTokenProvider.createAccessToken(savedUser.getId(), savedUser.getEmail());
-        return AuthResponse.of(accessToken, savedUser);
+        return issueTokens(savedUser);
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -57,8 +58,7 @@ public class AuthService {
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
             throw new BusinessException(Code.INVALID_CREDENTIALS);
         }
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
-        return AuthResponse.of(accessToken, user);
+        return issueTokens(user);
     }
 
     /**
@@ -80,8 +80,34 @@ public class AuthService {
         String email = rawEmail.trim().toLowerCase();
 
         User user = userMapper.findByEmail(email).orElseGet(() -> createGoogleUser(email, payload));
+        return issueTokens(user);
+    }
+
+    /**
+     * Exchanges a valid refresh token for a new access token (and a rotated refresh token).
+     * This is what keeps users logged in after the short-lived access token expires, without
+     * re-entering credentials.
+     */
+    @Transactional
+    public AuthResponse refresh(RefreshTokenRequest req) {
+        RefreshTokenService.Rotation rotation = refreshTokenService.rotate(req.refreshToken());
+        User user = userMapper.findById(rotation.userId())
+                .orElseThrow(() -> new BusinessException(Code.TOKEN_INVALID));
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
-        return AuthResponse.of(accessToken, user);
+        return AuthResponse.of(accessToken, rotation.refreshToken(), user);
+    }
+
+    /** Revokes the presented refresh token so it can no longer be used (logout). */
+    @Transactional
+    public void logout(RefreshTokenRequest req) {
+        refreshTokenService.revoke(req.refreshToken());
+    }
+
+    /** Issues a fresh access token + a new refresh token for an authenticated user. */
+    private AuthResponse issueTokens(User user) {
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
+        String refreshToken = refreshTokenService.issue(user.getId());
+        return AuthResponse.of(accessToken, refreshToken, user);
     }
 
     private User createGoogleUser(String email, GoogleIdToken.Payload payload) {

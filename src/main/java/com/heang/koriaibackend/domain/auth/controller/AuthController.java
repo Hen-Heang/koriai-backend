@@ -4,6 +4,7 @@ import com.heang.koriaibackend.common.api.ApiResponse;
 import com.heang.koriaibackend.domain.auth.dto.AuthResponse;
 import com.heang.koriaibackend.domain.auth.dto.GoogleLoginRequest;
 import com.heang.koriaibackend.domain.auth.dto.LoginRequest;
+import com.heang.koriaibackend.domain.auth.dto.RefreshTokenRequest;
 import com.heang.koriaibackend.domain.auth.dto.RegisterRequest;
 import com.heang.koriaibackend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -35,5 +36,16 @@ public class AuthController {
     @PostMapping("/google")
     public ApiResponse<AuthResponse> google(@Valid @RequestBody GoogleLoginRequest req) {
         return ApiResponse.success(authService.loginWithGoogle(req));
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest req) {
+        return ApiResponse.success(authService.refresh(req));
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@Valid @RequestBody RefreshTokenRequest req) {
+        authService.logout(req);
+        return ApiResponse.success(null);
     }
 }

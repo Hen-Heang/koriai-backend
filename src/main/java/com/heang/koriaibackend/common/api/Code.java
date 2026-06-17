@@ -18,6 +18,8 @@ public enum Code {
     TOKEN_EXPIRED(1004, "Authentication token has expired", 401),
     TOKEN_INVALID(1005, "Invalid authentication token", 401),
     INSUFFICIENT_PERMISSIONS(1006, "Insufficient permissions for this operation", 403),
+    REFRESH_TOKEN_INVALID(1007, "Invalid or revoked refresh token", 401),
+    REFRESH_TOKEN_EXPIRED(1008, "Refresh token has expired", 401),
 
     // Registration Errors (1100-1199)
     REGISTRATION_FAILED(1100, "Registration failed", 400),

@@ -41,11 +41,14 @@ mybatis:
 jwt:
   secret: ${JWT_SECRET:replace-this-with-a-long-random-256-bit-secret}
   access-token-expiration-ms: 3600000
+  # Refresh token lifetime: 30 days. Clients exchange it at /api/auth/refresh for a
+  # new short-lived access token, so users stay logged in without re-entering credentials.
+  refresh-token-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:2592000000}
 
 google:
   # Comma-separated list of accepted Google OAuth client IDs (token audiences).
   # Include the web client ID used by the frontend and, if reused, the Supabase Google client ID.
-  client-ids: ${GOOGLE_CLIENT_IDS:}
+  client-ids: ${GOOGLE_CLIENT_IDS:816815778182-9nipn87u732cj9cqgs1k4nihiohch17s.apps.googleusercontent.com}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}

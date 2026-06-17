@@ -4,6 +4,7 @@ import com.heang.koriaibackend.domain.users.model.User;
 
 public record AuthResponse(
         String accessToken,
+        String refreshToken,
         String tokenType,
         Long userId,
         String email,
@@ -11,9 +12,10 @@ public record AuthResponse(
         String koreanLevel,
         String preferredModel
 ) {
-    public static AuthResponse of(String accessToken, User user) {
+    public static AuthResponse of(String accessToken, String refreshToken, User user) {
         return new AuthResponse(
                 accessToken,
+                refreshToken,
                 "Bearer",
                 user.getId(),
                 user.getEmail(),
