@@ -6,12 +6,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Collections;
@@ -25,7 +27,17 @@ public class TtsController {
     @Value("${openai.api-key}")
     private String apiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    // Bounded timeouts so a stalled OpenAI TTS call frees the request thread
+    // instead of hanging indefinitely (the default factory has no timeouts).
+    // The frontend already degrades gracefully when audio fails to load.
+    private final RestTemplate restTemplate = buildRestTemplate();
+
+    private static RestTemplate buildRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(5));
+        factory.setReadTimeout(Duration.ofSeconds(20));
+        return new RestTemplate(factory);
+    }
 
     // Vocab terms and phrases are replayed constantly during review sessions —
     // cache the synthesized audio so repeats skip the OpenAI round trip.

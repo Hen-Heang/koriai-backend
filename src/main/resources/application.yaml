@@ -15,6 +15,16 @@ spring:
     username: ${DB_USERNAME:${DATABASE_USERNAME:${PGUSER:postgres}}}
     password: ${DB_PASSWORD:${DATABASE_PASSWORD:${PGPASSWORD:123}}}
     driver-class-name: org.postgresql.Driver
+    # Explicit HikariCP sizing. Overridable via env for deploy. connection-timeout
+    # is the key "smoothness" knob — fail fast (10s) if the pool is exhausted
+    # instead of blocking the request thread; keep-warm idle connections avoid
+    # cold-connect latency on the first query after a quiet period.
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:10000}
+      idle-timeout: 300000
+      max-lifetime: 1200000
   flyway:
     enabled: true
     locations: classpath:db/migration

@@ -62,6 +62,20 @@ public class ChatService {
     }
 
     @Transactional
+    public Conversation renameConversation(Long userId, Long conversationId, String title) {
+        requireOwnedConversation(userId, conversationId);
+        conversationMapper.updateTitle(conversationId, title.trim());
+        return conversationMapper.findById(conversationId)
+                .orElseThrow(() -> new BusinessException(Code.NOT_FOUND, "Conversation not found"));
+    }
+
+    @Transactional
+    public void deleteConversation(Long userId, Long conversationId) {
+        requireOwnedConversation(userId, conversationId);
+        conversationMapper.deleteById(conversationId); // messages cascade via FK
+    }
+
+    @Transactional
     public ChatSendResponse sendMessage(Long userId, String text, Long conversationId) {
         ChatTurn turn = prepareTurn(userId, text, conversationId);
         Message userMessage = turn.userMessage();

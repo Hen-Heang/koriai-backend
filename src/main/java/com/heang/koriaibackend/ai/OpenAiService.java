@@ -2,6 +2,7 @@ package com.heang.koriaibackend.ai;
 
 import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.openai.client.OpenAIClient;
+import com.openai.core.RequestOptions;
 import com.openai.core.http.StreamResponse;
 import com.openai.models.Reasoning;
 import com.openai.models.ReasoningEffort;
@@ -25,6 +26,14 @@ public class OpenAiService {
     // internal reasoning pass before any output. Our tasks are short and
     // structured, so request "minimal" effort to cut latency dramatically.
     private static final long MAX_OUTPUT_TOKENS = 4096L;
+
+    // Bound non-streaming calls (generate/analyze/evaluate) so a stalled OpenAI
+    // response frees the request thread instead of hanging on the SDK's very
+    // long default. Streaming (generateStream) is intentionally left untouched —
+    // a long live token stream must not be cut off by a request timeout.
+    private static final RequestOptions NON_STREAMING_OPTIONS = RequestOptions.builder()
+            .timeout(java.time.Duration.ofSeconds(60))
+            .build();
 
     private final OpenAIClient client;
 
@@ -62,7 +71,7 @@ public class OpenAiService {
         if (isReasoningModel(selectedModel)) {
             paramsBuilder.reasoning(Reasoning.builder().effort(ReasoningEffort.MINIMAL).build());
         }
-        Response response = client.responses().create(paramsBuilder.build());
+        Response response = client.responses().create(paramsBuilder.build(), NON_STREAMING_OPTIONS);
         long elapsed = System.currentTimeMillis() - start;
 
         StringBuilder text = new StringBuilder();
