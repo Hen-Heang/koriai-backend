@@ -4,21 +4,29 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.heang.koriaibackend.domain.dashboard.mapper.DashboardMapper">
 
+    <!-- KoriAI targets developers in Korea, so "today" is anchored to Seoul time,
+         not the server/UTC date. Use this fragment instead of CURRENT_DATE so a
+         late-evening Seoul session doesn't land on the wrong calendar day. -->
+    <sql id="seoulToday">(NOW() AT TIME ZONE 'Asia/Seoul')::date</sql>
+
     <!-- Any learning action counts as activity: corrections, chat messages,
-         vocab deck building, and flashcard reviews. -->
+         vocab deck building, flashcard reviews, and listening practice. -->
     <sql id="activityDaysUnion">
-        SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS day
+        SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM sentence_corrections WHERE user_id = #{userId}
         UNION
-        SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'UTC') AS day
+        SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM messages m JOIN conversations c ON m.conversation_id = c.id
         WHERE c.user_id = #{userId} AND m.role = 'USER'
         UNION
-        SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS day
+        SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM vocab_cards WHERE user_id = #{userId}
         UNION
-        SELECT DISTINCT DATE(last_reviewed_at AT TIME ZONE 'UTC') AS day
+        SELECT DISTINCT DATE(last_reviewed_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM vocab_cards WHERE user_id = #{userId} AND last_reviewed_at IS NOT NULL
+        UNION
+        SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day
+        FROM listening_attempts WHERE user_id = #{userId}
     </sql>
 
     <select id="countCorrectionsThisWeek" resultType="int">
@@ -43,19 +51,19 @@
         SELECT COUNT(*) FROM vocab_cards
         WHERE user_id = #{userId}
           AND last_reviewed_at IS NOT NULL
-          AND DATE(last_reviewed_at AT TIME ZONE 'UTC') = CURRENT_DATE
+          AND DATE(last_reviewed_at AT TIME ZONE 'Asia/Seoul') = <include refid="seoulToday"/>
     </select>
 
     <select id="countCorrectionsToday" resultType="int">
         SELECT COUNT(*) FROM sentence_corrections
         WHERE user_id = #{userId}
-          AND DATE(created_at AT TIME ZONE 'UTC') = CURRENT_DATE
+          AND DATE(created_at AT TIME ZONE 'Asia/Seoul') = <include refid="seoulToday"/>
     </select>
 
     <select id="countDueReviews" resultType="int">
         SELECT COUNT(*) FROM vocab_cards
         WHERE user_id = #{userId}
-          AND next_review_date &lt;= CURRENT_DATE
+          AND next_review_date &lt;= <include refid="seoulToday"/>
     </select>
 
     <!-- Forgiving streak: a single missed day does not break the chain
@@ -66,7 +74,7 @@
             <include refid="activityDaysUnion"/>
         ),
         ordered AS (
-            SELECT day FROM activity_days WHERE day &lt;= CURRENT_DATE
+            SELECT day FROM activity_days WHERE day &lt;= <include refid="seoulToday"/>
         ),
         gaps AS (
             SELECT day, day - LEAD(day) OVER (ORDER BY day DESC) AS gap
@@ -79,7 +87,7 @@
             FROM gaps
         )
         SELECT CASE
-            WHEN (SELECT MAX(day) FROM ordered) &gt;= CURRENT_DATE - 2
+            WHEN (SELECT MAX(day) FROM ordered) &gt;= <include refid="seoulToday"/> - 2
             THEN (SELECT COUNT(*) FROM runs WHERE grp = 0)
             ELSE 0
         END
@@ -89,7 +97,7 @@
         SELECT EXISTS (
             SELECT 1 FROM (
                 <include refid="activityDaysUnion"/>
-            ) a WHERE a.day = CURRENT_DATE
+            ) a WHERE a.day = <include refid="seoulToday"/>
         )
     </select>
 
@@ -105,22 +113,22 @@
     <select id="getDailyActivity" resultType="map">
         WITH days AS (
             SELECT generate_series(
-                CURRENT_DATE - INTERVAL '6 days',
-                CURRENT_DATE,
+                <include refid="seoulToday"/> - INTERVAL '6 days',
+                <include refid="seoulToday"/>,
                 INTERVAL '1 day'
             )::date AS day
         ),
         corrections AS (
-            SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS cnt
+            SELECT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day, COUNT(*) AS cnt
             FROM sentence_corrections WHERE user_id = #{userId}
-              AND created_at >= CURRENT_DATE - INTERVAL '6 days'
+              AND created_at >= <include refid="seoulToday"/> - INTERVAL '6 days'
             GROUP BY 1
         ),
         messages AS (
-            SELECT DATE(m.created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS cnt
+            SELECT DATE(m.created_at AT TIME ZONE 'Asia/Seoul') AS day, COUNT(*) AS cnt
             FROM messages m JOIN conversations c ON m.conversation_id = c.id
             WHERE c.user_id = #{userId} AND m.role = 'USER'
-              AND m.created_at >= CURRENT_DATE - INTERVAL '6 days'
+              AND m.created_at >= <include refid="seoulToday"/> - INTERVAL '6 days'
             GROUP BY 1
         )
         SELECT

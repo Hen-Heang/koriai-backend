@@ -38,3 +38,4 @@ build/
 run-prod.ps1
 prod-boot.log
 boot-test.log
+verify-boot.log
