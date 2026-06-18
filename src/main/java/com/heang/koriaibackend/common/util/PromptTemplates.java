@@ -9,8 +9,49 @@ public final class PromptTemplates {
         return value == null || value.isBlank() ? fallback : value;
     }
 
+    private static boolean has(String v) {
+        return v != null && !v.isBlank();
+    }
+
+    /**
+     * A compact "about the learner" block built from the user's profile, used to
+     * personalize prompts (examples, topics, difficulty, and native-language glosses).
+     * Returns an empty string when no profile data is available. Only non-blank
+     * fields are included, so the model isn't fed "unspecified" noise.
+     */
+    public static String learnerProfileBlock(String country, String nativeLanguage,
+                                             String occupation, Integer yearsOfExperience,
+                                             String learningGoal) {
+        StringBuilder sb = new StringBuilder();
+        if (has(occupation)) {
+            sb.append("- Job: ").append(occupation);
+            if (yearsOfExperience != null && yearsOfExperience > 0) {
+                sb.append(" (").append(yearsOfExperience).append(" yrs experience)");
+            }
+            sb.append("\n");
+        }
+        if (has(learningGoal)) {
+            sb.append("- Main learning goal: ").append(learningGoal).append("\n");
+        }
+        if (has(nativeLanguage)) {
+            sb.append("- Native language: ").append(nativeLanguage)
+              .append(" — for hard words you may add a short gloss in ").append(nativeLanguage)
+              .append(" in addition to English.\n");
+        }
+        if (has(country)) {
+            sb.append("- From: ").append(country).append("\n");
+        }
+        if (sb.isEmpty()) {
+            return "";
+        }
+        return """
+                About the learner (use this to tailor examples, topics, and difficulty to their job and goal — \
+                don't mention it explicitly unless relevant):
+                %s""".formatted(sb.toString());
+    }
+
     public static String chatPrompt(String userMessage, String conversationType, String koreanLevel,
-                                    String learnerName, String history) {
+                                    String learnerName, String history, String learnerProfile) {
         return """
                 You are KoriAI, a warm, encouraging Korean language tutor and conversation coach.
                 You are helping %s, whose Korean level is %s. Conversation type: %s.
@@ -20,10 +61,12 @@ public final class PromptTemplates {
                 - If the learner writes Korean with mistakes, gently correct it: show the corrected Korean, then briefly explain the fix in English.
                 - Whenever you give Korean, include the English translation, and add Revised Romanization for beginner/intermediate learners.
                 - Match the Korean difficulty to the learner's level.
+                - When useful, ground examples in the learner's job and goal so practice is relevant to their real work.
                 - Acknowledge their effort first, then teach. Stay supportive and motivating.
                 - End with a short natural follow-up question in Korean (with its English translation) to keep them practicing.
                 - Use the conversation so far for context; do not repeat yourself or forget what was already said.
 
+                %s
                 %s
 
                 The learner just said:
@@ -32,6 +75,7 @@ public final class PromptTemplates {
                         orDefault(learnerName, "the learner"),
                         orDefault(koreanLevel, "unspecified"),
                         conversationType,
+                        orDefault(learnerProfile, ""),
                         orDefault(history, "(This is the start of the conversation.)"),
                         userMessage);
     }
@@ -123,7 +167,7 @@ public final class PromptTemplates {
                 {
                   "variations": [
                     {
-                      "korean": "The Korean message",
+                      "Korean": "The Korean message",
                       "romanization": "Revised Romanization",
                       "formality": "Formality level in English (e.g. Formal business, Polite-standard, Casual team chat)",
                       "situation": "Short English note on the best situation to use this version"
@@ -133,7 +177,7 @@ public final class PromptTemplates {
                 }
                 Rules:
                 - Provide exactly 3 variations ordered from most formal to most casual.
-                - Each "korean" must be natural workplace Korean a real Korean developer would use.
+                - Each "Korean" must be natural workplace Korean a real Korean developer would use.
                 - All explanations must be in English.
                 """.formatted(intent, orDefault(category, "General"), level);
     }
@@ -148,7 +192,7 @@ public final class PromptTemplates {
                 {
                   "title": "Short English title for the lesson",
                   "lines": [
-                    { "speaker": "Speaker name or role", "korean": "Korean line", "english": "English translation" }
+                    { "speaker": "Speaker name or role", "Korean": "Korean line", "English": "English translation" }
                   ],
                   "quiz": [
                     {
@@ -274,8 +318,8 @@ public final class PromptTemplates {
                   ],
                   "suggestedReplies": [
                     {
-                      "korean": "A natural Korean reply the engineer could send",
-                      "english": "English translation of the reply",
+                      "Korean": "A natural Korean reply the engineer could send",
+                      "English": "English translation of the reply",
                       "formality": "Formality level of this reply in English"
                     }
                   ]

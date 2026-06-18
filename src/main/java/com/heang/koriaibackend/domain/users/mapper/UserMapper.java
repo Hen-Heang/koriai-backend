@@ -23,7 +23,12 @@ public interface UserMapper {
 
     int updateProfile(@Param("id") Long id,
                       @Param("displayName") String displayName,
-                      @Param("koreanLevel") String koreanLevel);
+                      @Param("koreanLevel") String koreanLevel,
+                      @Param("country") String country,
+                      @Param("nativeLanguage") String nativeLanguage,
+                      @Param("occupation") String occupation,
+                      @Param("yearsOfExperience") Integer yearsOfExperience,
+                      @Param("learningGoal") String learningGoal);
 
     int updatePreferredModel(@Param("id") Long id, @Param("preferredModel") String preferredModel);
 

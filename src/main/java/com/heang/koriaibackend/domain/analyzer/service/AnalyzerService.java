@@ -3,9 +3,10 @@ package com.heang.koriaibackend.domain.analyzer.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.ai.OpenAiService.StructuredAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
 import com.heang.koriaibackend.domain.analyzer.dto.AnalysisBreakdownItem;
+import com.heang.koriaibackend.domain.analyzer.dto.AnalysisResult;
 import com.heang.koriaibackend.domain.analyzer.dto.MessageAnalysisResponse;
 import com.heang.koriaibackend.domain.analyzer.dto.SuggestedReply;
 import com.heang.koriaibackend.domain.analyzer.mapper.MessageAnalysisMapper;
@@ -34,49 +35,41 @@ public class AnalyzerService {
     @Transactional
     public MessageAnalysisResponse analyze(Long userId, String text, String source) {
         String prompt = PromptTemplates.analyzerPrompt(text, source);
-        OpenAiResult result = openAiService.generate(prompt, model);
+        StructuredAiResult<AnalysisResult> result = openAiService.generateStructured(prompt, model, AnalysisResult.class);
+        AnalysisResult r = result.value();
 
-        AnalysisPayload payload = parsePayload(result.content());
-        String breakdownJson = toJson(payload.breakdown());
-        String repliesJson = toJson(payload.suggestedReplies());
+        List<AnalysisBreakdownItem> breakdown = r.breakdown == null ? Collections.emptyList()
+                : r.breakdown.stream()
+                        .map(b -> new AnalysisBreakdownItem(b.fragment, b.meaning, b.note))
+                        .toList();
+        List<SuggestedReply> replies = r.suggestedReplies == null ? Collections.emptyList()
+                : r.suggestedReplies.stream()
+                        .map(s -> new SuggestedReply(s.korean, s.english, s.formality))
+                        .toList();
 
         MessageAnalysis analysis = MessageAnalysis.builder()
                 .userId(userId)
                 .source(source)
                 .originalText(text)
-                .literalMeaning(payload.literalMeaning())
-                .naturalMeaning(payload.naturalMeaning())
-                .businessContext(payload.businessContext())
-                .politenessLevel(payload.politenessLevel())
-                .tone(payload.tone())
-                .breakdown(breakdownJson)
-                .suggestedReplies(repliesJson)
-                .modelUsed(result.model())
+                .literalMeaning(r.literalMeaning)
+                .naturalMeaning(r.naturalMeaning)
+                .businessContext(r.businessContext)
+                .politenessLevel(r.politenessLevel)
+                .tone(r.tone)
+                .breakdown(toJson(breakdown))
+                .suggestedReplies(toJson(replies))
+                .modelUsed(result.meta().model())
                 .build();
         messageAnalysisMapper.insert(analysis);
-        apiUsageLogService.log(userId, "ANALYZER", result);
+        apiUsageLogService.log(userId, "ANALYZER", result.meta());
 
-        return MessageAnalysisResponse.from(analysis, payload.breakdown(), payload.suggestedReplies());
+        return MessageAnalysisResponse.from(analysis, breakdown, replies);
     }
 
     public List<MessageAnalysisResponse> history(Long userId, int limit) {
         return messageAnalysisMapper.findByUserId(userId, limit).stream()
                 .map(it -> MessageAnalysisResponse.from(it, parseBreakdown(it.getBreakdown()), parseReplies(it.getSuggestedReplies())))
                 .toList();
-    }
-
-    private AnalysisPayload parsePayload(String json) {
-        try {
-            return objectMapper.readValue(json, AnalysisPayload.class);
-        } catch (JsonProcessingException e) {
-            return new AnalysisPayload(
-                    "Could not parse analysis payload",
-                    "Could not parse analysis payload",
-                    null, null, null,
-                    Collections.emptyList(),
-                    Collections.emptyList()
-            );
-        }
     }
 
     private List<AnalysisBreakdownItem> parseBreakdown(String json) {
@@ -107,16 +100,5 @@ public class AnalyzerService {
         } catch (JsonProcessingException e) {
             return "[]";
         }
-    }
-
-    private record AnalysisPayload(
-            String literalMeaning,
-            String naturalMeaning,
-            String businessContext,
-            String politenessLevel,
-            String tone,
-            List<AnalysisBreakdownItem> breakdown,
-            List<SuggestedReply> suggestedReplies
-    ) {
     }
 }

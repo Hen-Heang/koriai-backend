@@ -20,6 +20,11 @@ public class User {
     private String displayName;
     private String koreanLevel;
     private String preferredModel;
+    private String country;
+    private String nativeLanguage;
+    private String occupation;
+    private Integer yearsOfExperience;
+    private String learningGoal;
     private String profileImageContentType;
     private byte[] profileImageData;
     private boolean hasProfileImage;

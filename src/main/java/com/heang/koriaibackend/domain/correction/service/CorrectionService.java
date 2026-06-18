@@ -3,10 +3,11 @@ package com.heang.koriaibackend.domain.correction.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.ai.OpenAiService.StructuredAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionChange;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionResponse;
+import com.heang.koriaibackend.domain.correction.dto.CorrectionResult;
 import com.heang.koriaibackend.domain.correction.mapper.SentenceCorrectionMapper;
 import com.heang.koriaibackend.domain.correction.model.SentenceCorrection;
 import com.heang.koriaibackend.domain.usage.service.ApiUsageLogService;
@@ -33,39 +34,34 @@ public class CorrectionService {
     @Transactional
     public CorrectionResponse check(Long userId, String text) {
         String prompt = PromptTemplates.correctionPrompt(text);
-        OpenAiResult result = openAiService.generate(prompt, model);
+        StructuredAiResult<CorrectionResult> result = openAiService.generateStructured(prompt, model, CorrectionResult.class);
+        CorrectionResult r = result.value();
 
-        CorrectionPayload payload = parseCorrectionPayload(result.content(), text);
-        String grammarPointsJson = toJson(payload.grammarPoints());
-        String changesJson = toJson(payload.changes());
+        List<String> grammarPoints = r.grammarPoints == null ? Collections.emptyList() : r.grammarPoints;
+        List<CorrectionChange> changes = r.changes == null ? Collections.emptyList()
+                : r.changes.stream()
+                        .map(c -> new CorrectionChange(c.original, c.corrected, c.englishMeaning, c.reason))
+                        .toList();
 
         SentenceCorrection correction = SentenceCorrection.builder()
                 .userId(userId)
                 .originalText(text)
-                .correctedText(payload.correctedText())
-                .explanation(payload.explanation())
-                .grammarPoints(grammarPointsJson)
-                .changes(changesJson)
-                .modelUsed(result.model())
+                .correctedText(r.correctedText != null ? r.correctedText : text)
+                .explanation(r.explanation)
+                .grammarPoints(toJson(grammarPoints))
+                .changes(toJson(changes))
+                .modelUsed(result.meta().model())
                 .build();
         sentenceCorrectionMapper.insert(correction);
-        apiUsageLogService.log(userId, "CORRECTION", result);
+        apiUsageLogService.log(userId, "CORRECTION", result.meta());
 
-        return CorrectionResponse.from(correction, payload.grammarPoints(), payload.changes());
+        return CorrectionResponse.from(correction, grammarPoints, changes);
     }
 
     public List<CorrectionResponse> history(Long userId, int limit) {
         return sentenceCorrectionMapper.findByUserId(userId, limit).stream()
                 .map(it -> CorrectionResponse.from(it, parseStringList(it.getGrammarPoints()), parseChangeList(it.getChanges())))
                 .toList();
-    }
-
-    private CorrectionPayload parseCorrectionPayload(String json, String originalText) {
-        try {
-            return objectMapper.readValue(json, CorrectionPayload.class);
-        } catch (JsonProcessingException e) {
-            return new CorrectionPayload(originalText, "Could not parse correction payload", Collections.emptyList(), Collections.emptyList());
-        }
     }
 
     private List<String> parseStringList(String json) {
@@ -96,8 +92,5 @@ public class CorrectionService {
         } catch (JsonProcessingException e) {
             return "[]";
         }
-    }
-
-    private record CorrectionPayload(String correctedText, String explanation, List<String> grammarPoints, List<CorrectionChange> changes) {
     }
 }

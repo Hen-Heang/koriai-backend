@@ -51,11 +51,25 @@ public class UserService {
 
     @Transactional
     public Optional<User> updateProfile(Long id, UpdateUserProfileRequest req) {
-        int updated = userMapper.updateProfile(id, req.displayName().trim(), req.koreanLevel().trim().toUpperCase());
+        int updated = userMapper.updateProfile(
+                id,
+                req.displayName().trim(),
+                req.koreanLevel().trim().toUpperCase(),
+                trimToNull(req.country()),
+                trimToNull(req.nativeLanguage()),
+                trimToNull(req.occupation()),
+                req.yearsOfExperience(),
+                trimToNull(req.learningGoal()));
         if (updated == 0) {
             return Optional.empty();
         }
         return userMapper.findById(id);
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     @Transactional

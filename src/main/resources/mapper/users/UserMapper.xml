@@ -11,6 +11,11 @@
         <result property="displayName" column="display_name"/>
         <result property="koreanLevel" column="korean_level"/>
         <result property="preferredModel" column="preferred_model"/>
+        <result property="country" column="country"/>
+        <result property="nativeLanguage" column="native_language"/>
+        <result property="occupation" column="occupation"/>
+        <result property="yearsOfExperience" column="years_of_experience"/>
+        <result property="learningGoal" column="learning_goal"/>
         <result property="hasProfileImage" column="has_profile_image"/>
         <result property="studyRemindersEnabled" column="study_reminders_enabled"/>
         <result property="studyReminderHour" column="study_reminder_hour"/>
@@ -22,6 +27,7 @@
 
     <sql id="BaseColumns">
         id, email, password_hash, display_name, korean_level, preferred_model,
+        country, native_language, occupation, years_of_experience, learning_goal,
         (profile_image_data IS NOT NULL) AS has_profile_image,
         study_reminders_enabled, study_reminder_hour,
         created_at, updated_at
@@ -67,8 +73,13 @@
 
     <update id="updateProfile">
         UPDATE users
-        SET display_name = #{displayName},
-            korean_level = #{koreanLevel},
+        SET display_name        = #{displayName},
+            korean_level        = #{koreanLevel},
+            country             = COALESCE(#{country}, country),
+            native_language     = COALESCE(#{nativeLanguage}, native_language),
+            occupation          = COALESCE(#{occupation}, occupation),
+            years_of_experience = COALESCE(#{yearsOfExperience}, years_of_experience),
+            learning_goal       = COALESCE(#{learningGoal}, learning_goal),
             updated_at = NOW()
         WHERE id = #{id}
     </update>

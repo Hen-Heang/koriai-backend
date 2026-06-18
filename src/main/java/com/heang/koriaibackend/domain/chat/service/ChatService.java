@@ -168,8 +168,12 @@ public class ChatService {
         messageMapper.insert(userMessage);
         conversationMapper.incrementMessageCount(conversationId);
 
+        String learnerProfile = PromptTemplates.learnerProfileBlock(
+                user.getCountry(), user.getNativeLanguage(), user.getOccupation(),
+                user.getYearsOfExperience(), user.getLearningGoal());
+
         String prompt = PromptTemplates.chatPrompt(text, conversation.getConversationType(),
-                user.getKoreanLevel(), user.getDisplayName(), history);
+                user.getKoreanLevel(), user.getDisplayName(), history, learnerProfile);
         return new ChatTurn(userMessage, prompt, conversation.getModelUsed());
     }
 
