@@ -23,6 +23,8 @@ public class User {
     private String profileImageContentType;
     private byte[] profileImageData;
     private boolean hasProfileImage;
+    private boolean studyRemindersEnabled;
+    private Integer studyReminderHour;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

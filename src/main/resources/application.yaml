@@ -79,10 +79,14 @@ app:
 #   bot-token: token from @BotFather
 #   bot-username: the bot's @name (without @), used to build t.me deep links
 #   webhook-secret: optional shared secret validated on the webhook header
+#   webhook-base-url: public HTTPS origin of THIS backend; the webhook is auto-
+#     registered with Telegram on startup at <base>/api/telegram/webhook. On
+#     Railway it defaults to RAILWAY_PUBLIC_DOMAIN (https:// is added if missing).
 telegram:
   bot-token: ${TELEGRAM_BOT_TOKEN:}
   bot-username: ${TELEGRAM_BOT_USERNAME:}
   webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
+  webhook-base-url: ${TELEGRAM_WEBHOOK_BASE_URL:${RAILWAY_PUBLIC_DOMAIN:}}
 
 # Web Push (browser) VAPID keys. The channel self-disables when keys are blank.
 # Generate once: npx web-push generate-vapid-keys

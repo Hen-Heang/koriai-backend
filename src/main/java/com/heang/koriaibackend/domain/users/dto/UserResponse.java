@@ -11,6 +11,8 @@ public record UserResponse(
         String koreanLevel,
         String preferredModel,
         boolean hasProfileImage,
+        boolean studyRemindersEnabled,
+        Integer studyReminderHour,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
@@ -22,6 +24,8 @@ public record UserResponse(
                 user.getKoreanLevel(),
                 user.getPreferredModel(),
                 user.isHasProfileImage(),
+                user.isStudyRemindersEnabled(),
+                user.getStudyReminderHour(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

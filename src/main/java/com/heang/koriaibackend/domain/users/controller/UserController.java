@@ -4,6 +4,7 @@ import com.heang.koriaibackend.common.api.ApiResponse;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.domain.users.dto.CreateUserRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdatePreferredModelRequest;
+import com.heang.koriaibackend.domain.users.dto.UpdateStudyRemindersRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdateUserProfileRequest;
 import com.heang.koriaibackend.domain.users.dto.UserResponse;
 import com.heang.koriaibackend.domain.users.service.UserService;
@@ -73,6 +74,16 @@ public class UserController {
     @PutMapping("/{id}/preferred-model")
     public ApiResponse<?> updatePreferredModel(@PathVariable Long id, @Valid @RequestBody UpdatePreferredModelRequest req) {
         return userService.updatePreferredModel(id, req)
+                .<ApiResponse<?>>map(user -> ApiResponse.success(UserResponse.from(user)))
+                .orElseGet(() -> ApiResponse.error(Code.NOT_FOUND, Map.of("message", "User not found")));
+    }
+
+    @PutMapping("/{id}/study-reminders")
+    public ApiResponse<?> updateStudyReminders(@PathVariable Long id, @Valid @RequestBody UpdateStudyRemindersRequest req) {
+        if (!id.equals(SecurityUtils.currentUserId())) {
+            return ApiResponse.error(Code.INSUFFICIENT_PERMISSIONS, Map.of("message", "You can only update your own settings"));
+        }
+        return userService.updateStudyReminders(id, req)
                 .<ApiResponse<?>>map(user -> ApiResponse.success(UserResponse.from(user)))
                 .orElseGet(() -> ApiResponse.error(Code.NOT_FOUND, Map.of("message", "User not found")));
     }

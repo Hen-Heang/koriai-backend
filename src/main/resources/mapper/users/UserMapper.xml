@@ -12,6 +12,8 @@
         <result property="koreanLevel" column="korean_level"/>
         <result property="preferredModel" column="preferred_model"/>
         <result property="hasProfileImage" column="has_profile_image"/>
+        <result property="studyRemindersEnabled" column="study_reminders_enabled"/>
+        <result property="studyReminderHour" column="study_reminder_hour"/>
         <result property="profileImageContentType" column="profile_image_content_type"/>
         <result property="profileImageData" column="profile_image_data"/>
         <result property="createdAt" column="created_at"/>
@@ -21,6 +23,7 @@
     <sql id="BaseColumns">
         id, email, password_hash, display_name, korean_level, preferred_model,
         (profile_image_data IS NOT NULL) AS has_profile_image,
+        study_reminders_enabled, study_reminder_hour,
         created_at, updated_at
     </sql>
 
@@ -73,6 +76,14 @@
     <update id="updatePreferredModel">
         UPDATE users
         SET preferred_model = #{preferredModel},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStudyReminders">
+        UPDATE users
+        SET study_reminders_enabled = #{enabled},
+            study_reminder_hour = #{hour},
             updated_at = NOW()
         WHERE id = #{id}
     </update>

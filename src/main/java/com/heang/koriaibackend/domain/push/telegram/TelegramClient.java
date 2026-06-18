@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,5 +50,31 @@ public class TelegramClient {
                         "disable_web_page_preview", true))
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    /**
+     * Register the inbound webhook with Telegram so it POSTs updates to {@code url}.
+     * {@code secret} (may be blank) is echoed back by Telegram in the
+     * X-Telegram-Bot-Api-Secret-Token header and validated by the webhook controller.
+     * Only "message" updates are requested — that's all the linking flow needs.
+     * Returns Telegram's raw JSON response for logging. Throws on transport/API failure.
+     */
+    public String setWebhook(String url, String secret) {
+        Map<String, Object> body = secret == null || secret.isBlank()
+                ? Map.of("url", url, "allowed_updates", List.of("message"))
+                : Map.of("url", url, "secret_token", secret, "allowed_updates", List.of("message"));
+        return restClient.post()
+                .uri("/bot{token}/setWebhook", botToken)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+    }
+
+    /** Fetch the current webhook registration state (URL, pending count, last error). */
+    public String getWebhookInfo() {
+        return restClient.get()
+                .uri("/bot{token}/getWebhookInfo", botToken)
+                .retrieve()
+                .body(String.class);
     }
 }

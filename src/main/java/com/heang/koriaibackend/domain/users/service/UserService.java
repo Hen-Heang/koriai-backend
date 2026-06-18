@@ -2,6 +2,7 @@ package com.heang.koriaibackend.domain.users.service;
 
 import com.heang.koriaibackend.domain.users.dto.CreateUserRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdatePreferredModelRequest;
+import com.heang.koriaibackend.domain.users.dto.UpdateStudyRemindersRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdateUserProfileRequest;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;
@@ -60,6 +61,15 @@ public class UserService {
     @Transactional
     public Optional<User> updatePreferredModel(Long id, UpdatePreferredModelRequest req) {
         int updated = userMapper.updatePreferredModel(id, req.preferredModel().trim());
+        if (updated == 0) {
+            return Optional.empty();
+        }
+        return userMapper.findById(id);
+    }
+
+    @Transactional
+    public Optional<User> updateStudyReminders(Long id, UpdateStudyRemindersRequest req) {
+        int updated = userMapper.updateStudyReminders(id, req.enabled(), req.hour());
         if (updated == 0) {
             return Optional.empty();
         }

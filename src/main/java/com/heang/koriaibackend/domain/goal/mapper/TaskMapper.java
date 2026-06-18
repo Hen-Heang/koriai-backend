@@ -44,4 +44,23 @@ public interface TaskMapper {
 
     /** Fire-once stamp so a task is reminded at most one time. */
     int markReminderSent(@Param("id") UUID id);
+
+    /**
+     * Timed, incomplete, not-yet-warned tasks whose end (daily_end_time) is within
+     * the owner's reminder-offset window and still upcoming. Drives the "due soon"
+     * reminder.
+     */
+    List<DueTaskReminder> findDueSoonReminders();
+
+    /** Fire-once stamp for the "due soon" reminder. */
+    int markDueSoonSent(@Param("id") UUID id);
+
+    /**
+     * Timed, incomplete, not-yet-warned tasks whose end (daily_end_time) has
+     * already passed. Drives the "overdue" reminder.
+     */
+    List<DueTaskReminder> findOverdueReminders();
+
+    /** Fire-once stamp for the "overdue" reminder. */
+    int markOverdueSent(@Param("id") UUID id);
 }

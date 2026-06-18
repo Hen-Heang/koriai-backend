@@ -1,0 +1,107 @@
+package com.heang.koriaibackend.domain.notification.service;
+
+import com.heang.koriaibackend.domain.dashboard.mapper.DashboardMapper;
+import com.heang.koriaibackend.domain.notification.mapper.StudyReminderMapper;
+import com.heang.koriaibackend.domain.notification.model.StudyReminderRecipient;
+import com.heang.koriaibackend.domain.push.service.PushDispatcher;
+import com.heang.koriaibackend.domain.push.service.PushMessage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+/**
+ * Per-minute daily study reminders — the two highest-leverage learning nudges,
+ * sibling to the task-focused {@code ReminderScheduler}. Both fan out through the
+ * existing {@link PushDispatcher} (Telegram / web push / FCM) and dedupe once per
+ * Seoul day via a {@code *_pushed_on} stamp on the user, so a missed minute
+ * self-heals on the next tick rather than double-sending.
+ *
+ * <ul>
+ *   <li><b>Reviews due</b> — at the user's study hour, only when SRS cards are due
+ *       ({@link StudyReminderMapper#findReviewsDueRecipients()}). Reviewing near
+ *       the due moment is the single biggest retention lever.</li>
+ *   <li><b>Streak saver</b> — in the evening, only when a live streak has no
+ *       activity yet today ({@link StudyReminderMapper#findStreakSaverRecipients()}).
+ *       Loss-aversion is the most effective habit trigger there is.</li>
+ * </ul>
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class StudyReminderScheduler {
+
+    private final StudyReminderMapper studyReminderMapper;
+    private final DashboardMapper dashboardMapper;
+    private final PushDispatcher pushDispatcher;
+
+    /** Runs at the top of every minute (server time); SQL gates are Seoul-anchored. */
+    @Scheduled(cron = "0 * * * * *")
+    public void sendStudyReminders() {
+        sendReviewsDue();
+        sendStreakSavers();
+    }
+
+    private void sendReviewsDue() {
+        List<StudyReminderRecipient> recipients;
+        try {
+            recipients = studyReminderMapper.findReviewsDueRecipients();
+        } catch (Exception e) {
+            log.warn("Reviews-due scan failed: {}", e.getMessage());
+            return;
+        }
+        if (recipients.isEmpty()) {
+            return;
+        }
+        for (StudyReminderRecipient r : recipients) {
+            try {
+                int n = r.getDueCount();
+                String body = n == 1
+                        ? "1 word is ready to review — keep it fresh."
+                        : n + " words are ready to review — a quick session keeps them fresh.";
+                pushDispatcher.dispatch(
+                        r.getUserId(),
+                        new PushMessage("📚 Time to review", body, "/vocab"));
+                studyReminderMapper.markReviewsDuePushed(r.getUserId());
+            } catch (Exception e) {
+                log.warn("Failed reviews-due reminder for user {}: {}", r.getUserId(), e.getMessage());
+            }
+        }
+        log.info("Sent {} reviews-due reminder(s)", recipients.size());
+    }
+
+    private void sendStreakSavers() {
+        List<StudyReminderRecipient> recipients;
+        try {
+            recipients = studyReminderMapper.findStreakSaverRecipients();
+        } catch (Exception e) {
+            log.warn("Streak-saver scan failed: {}", e.getMessage());
+            return;
+        }
+        if (recipients.isEmpty()) {
+            return;
+        }
+        for (StudyReminderRecipient r : recipients) {
+            try {
+                int streak = dashboardMapper.countStreakDays(r.getUserId());
+                // Defensive: the SQL already requires activity yesterday, so the
+                // forgiving streak is > 0 here — but never nag with "0-day streak".
+                if (streak <= 0) {
+                    studyReminderMapper.markStreakSaverPushed(r.getUserId());
+                    continue;
+                }
+                String body = "You haven't studied today — a few minutes keeps your "
+                        + streak + "-day streak alive.";
+                pushDispatcher.dispatch(
+                        r.getUserId(),
+                        new PushMessage("🔥 Keep your streak", body, "/dashboard"));
+                studyReminderMapper.markStreakSaverPushed(r.getUserId());
+            } catch (Exception e) {
+                log.warn("Failed streak-saver reminder for user {}: {}", r.getUserId(), e.getMessage());
+            }
+        }
+        log.info("Sent {} streak-saver reminder(s)", recipients.size());
+    }
+}

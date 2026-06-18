@@ -148,4 +148,71 @@
         UPDATE tasks SET reminder_sent_at = now() WHERE id = #{id}
     </update>
 
+    <!--
+      Due-soon reminders. Same shape as findDueReminders but on the task's END
+      instant: (date(end_date in tz) + daily_end_time) in tz. We warn once the
+      (end_instant - offset) window has opened but the deadline hasn't passed yet.
+      due_soon_sent_at dedupes; a missed cron minute self-heals on the next run.
+    -->
+    <select id="findDueSoonReminders" resultMap="DueTaskReminderMap">
+        WITH computed AS (
+            SELECT
+                t.id      AS task_id,
+                t.user_id AS user_id,
+                COALESCE(NULLIF(TRIM(t.title), ''), LEFT(t.description, 80), 'Task') AS title,
+                t.goal_id AS goal_id,
+                u.reminder_offset_minutes AS offset_min,
+                (
+                    (date(t.end_date AT TIME ZONE COALESCE(u.timezone, 'UTC')) + t.daily_end_time)
+                        AT TIME ZONE COALESCE(u.timezone, 'UTC')
+                ) AS end_instant
+            FROM tasks t
+            JOIN users u ON u.id = t.user_id
+            WHERE t.completed = false
+              AND COALESCE(t.is_anytime, false) = false
+              AND t.daily_end_time IS NOT NULL
+              AND t.due_soon_sent_at IS NULL
+        )
+        SELECT task_id, user_id, title, goal_id
+        FROM computed
+        WHERE end_instant > now()
+          AND (end_instant - make_interval(mins => COALESCE(offset_min, 30))) &lt;= now()
+    </select>
+
+    <update id="markDueSoonSent">
+        UPDATE tasks SET due_soon_sent_at = now() WHERE id = #{id}
+    </update>
+
+    <!--
+      Overdue reminders. The task's END instant has already passed and it's still
+      incomplete. overdue_sent_at dedupes (one warning per task); the V28 backfill
+      stamps tasks already overdue at deploy time so this never retro-fires.
+    -->
+    <select id="findOverdueReminders" resultMap="DueTaskReminderMap">
+        WITH computed AS (
+            SELECT
+                t.id      AS task_id,
+                t.user_id AS user_id,
+                COALESCE(NULLIF(TRIM(t.title), ''), LEFT(t.description, 80), 'Task') AS title,
+                t.goal_id AS goal_id,
+                (
+                    (date(t.end_date AT TIME ZONE COALESCE(u.timezone, 'UTC')) + t.daily_end_time)
+                        AT TIME ZONE COALESCE(u.timezone, 'UTC')
+                ) AS end_instant
+            FROM tasks t
+            JOIN users u ON u.id = t.user_id
+            WHERE t.completed = false
+              AND COALESCE(t.is_anytime, false) = false
+              AND t.daily_end_time IS NOT NULL
+              AND t.overdue_sent_at IS NULL
+        )
+        SELECT task_id, user_id, title, goal_id
+        FROM computed
+        WHERE end_instant &lt;= now()
+    </select>
+
+    <update id="markOverdueSent">
+        UPDATE tasks SET overdue_sent_at = now() WHERE id = #{id}
+    </update>
+
 </mapper>

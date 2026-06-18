@@ -27,6 +27,10 @@ public interface UserMapper {
 
     int updatePreferredModel(@Param("id") Long id, @Param("preferredModel") String preferredModel);
 
+    int updateStudyReminders(@Param("id") Long id,
+                             @Param("enabled") boolean enabled,
+                             @Param("hour") int hour);
+
     int updateProfileImage(@Param("id") Long id,
                            @Param("contentType") String contentType,
                            @Param("data") byte[] data);
