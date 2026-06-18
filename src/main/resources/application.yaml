@@ -1,5 +1,12 @@
 server:
   port: ${PORT:8080}
+  # Gzip JSON/text responses so payloads are smaller over the wire — meaningful
+  # on slower / distant connections. Only kicks in above 1 KB (tiny responses
+  # aren't worth the CPU). Audio (audio/mpeg from TTS) is left uncompressed.
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain,text/css,text/html,application/javascript
+    min-response-size: 1024
 
 spring:
   application:
