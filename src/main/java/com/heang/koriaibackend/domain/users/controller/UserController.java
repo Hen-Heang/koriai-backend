@@ -43,9 +43,6 @@ public class UserController {
 
     @PostMapping
     public ApiResponse<?> create(@Valid @RequestBody CreateUserRequest req) {
-        if (userService.existsByEmail(req.email())) {
-            return ApiResponse.error(Code.EMAIL_ALREADY_EXISTS, Map.of("message", "Email already registered"));
-        }
         return ApiResponse.success(UserResponse.from(userService.create(req)));
     }
 

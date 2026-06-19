@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class JacksonConfig {
 
     /**
-     * A fully-configured ObjectMapper. {@code findAndRegisterModules()} loads every Jackson
+     * A fully configured ObjectMapper. {@code findAndRegisterModules()} loads every Jackson
      * module on the classpath (JavaTime, parameter-names) via ServiceLoader, and dates are
      * written as ISO-8601 strings. A bare {@code new ObjectMapper()} lacks these, which breaks
      * records using @JsonNaming and JSON-blob (JsonNode) fields — see the goal/task DTOs.

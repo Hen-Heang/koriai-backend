@@ -14,7 +14,7 @@ public class SwaggerConfig {
     @Bean
     OpenAPI openAPI() {
         return new OpenAPI()
-                .info(new Info().title("Koriai API").version("1.0"))
+                .info(new Info().title("Hengo API").version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme()

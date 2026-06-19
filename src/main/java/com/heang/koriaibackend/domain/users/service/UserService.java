@@ -1,5 +1,6 @@
 package com.heang.koriaibackend.domain.users.service;
 
+import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.domain.users.dto.CreateUserRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdatePreferredModelRequest;
 import com.heang.koriaibackend.domain.users.dto.UpdateStudyRemindersRequest;
@@ -20,11 +21,20 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    public boolean existsByEmail(String email) {
+
+        return userMapper.findByEmail(email.trim().toLowerCase()).isPresent();
+    }
 
     @Transactional
     public User create(CreateUserRequest req) {
+//   set to lowercase -> email validation
+    String email = req.email().trim().toLowerCase();
+    if (existsByEmail(email)) {
+        throw new IllegalArgumentException(Code.EMAIL_ALREADY_EXISTS.getMessage());
+    }
         User user = User.builder()
-                .email(req.email().trim().toLowerCase())
+                .email(email)
                 .passwordHash(passwordEncoder.encode(req.password()))
                 .displayName(req.displayName().trim())
                 .koreanLevel(req.koreanLevel().trim().toUpperCase())
@@ -32,10 +42,6 @@ public class UserService {
                 .build();
         userMapper.insert(user);
         return user;
-    }
-
-    public boolean existsByEmail(String email) {
-        return userMapper.findByEmail(email.trim().toLowerCase()).isPresent();
     }
 
     public Optional<User> findById(Long id) {
