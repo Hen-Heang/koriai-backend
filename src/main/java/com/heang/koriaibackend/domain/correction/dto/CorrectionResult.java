@@ -18,6 +18,9 @@ public class CorrectionResult {
     @JsonPropertyDescription("The full corrected Korean text")
     public String correctedText;
 
+    @JsonPropertyDescription("Overall quality rating of the learner's ORIGINAL sentence, from 1 (needs work) to 5 (native-like)")
+    public Integer rating;
+
     @JsonPropertyDescription("Brief overall summary of the corrections in English (1-2 sentences)")
     public String explanation;
 

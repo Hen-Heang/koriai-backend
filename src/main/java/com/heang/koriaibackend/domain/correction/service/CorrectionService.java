@@ -5,12 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.ai.OpenAiService;
 import com.heang.koriaibackend.ai.OpenAiService.StructuredAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.common.exception.BusinessException;
+import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionChange;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionResponse;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionResult;
+import com.heang.koriaibackend.domain.correction.dto.CorrectionReviewResponse;
 import com.heang.koriaibackend.domain.correction.mapper.SentenceCorrectionMapper;
 import com.heang.koriaibackend.domain.correction.model.SentenceCorrection;
 import com.heang.koriaibackend.domain.usage.service.ApiUsageLogService;
+import com.heang.koriaibackend.domain.vocab.model.ReviewRating;
+import com.heang.koriaibackend.domain.vocab.service.SrsScheduler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,6 +52,7 @@ public class CorrectionService {
                 .userId(userId)
                 .originalText(text)
                 .correctedText(r.correctedText != null ? r.correctedText : text)
+                .rating(r.rating)
                 .explanation(r.explanation)
                 .grammarPoints(toJson(grammarPoints))
                 .changes(toJson(changes))
@@ -62,6 +68,42 @@ public class CorrectionService {
         return sentenceCorrectionMapper.findByUserId(userId, limit).stream()
                 .map(it -> CorrectionResponse.from(it, parseStringList(it.getGrammarPoints()), parseChangeList(it.getChanges())))
                 .toList();
+    }
+
+    public List<CorrectionReviewResponse> getDueReviews(Long userId) {
+        return sentenceCorrectionMapper.findDueByUserId(userId).stream()
+                .map(it -> CorrectionReviewResponse.from(it, parseStringList(it.getGrammarPoints())))
+                .toList();
+    }
+
+    @Transactional
+    public CorrectionReviewResponse rate(Long userId, Long correctionId, ReviewRating rating) {
+        SentenceCorrection correction = sentenceCorrectionMapper.findByIdAndUser(correctionId, userId);
+        if (correction == null) {
+            throw new BusinessException(Code.NOT_FOUND, "Correction not found");
+        }
+
+        SrsScheduler.Result next = SrsScheduler.rate(
+                correction.getEaseFactor(), correction.getIntervalDays(),
+                correction.getRepetitions(), correction.getLapses(), rating);
+
+        correction.setEaseFactor(next.easeFactor());
+        correction.setIntervalDays(next.intervalDays());
+        correction.setRepetitions(next.repetitions());
+        correction.setLapses(next.lapses());
+        correction.setMastery(next.mastery());
+        correction.setNextReviewDate(next.nextReview());
+        sentenceCorrectionMapper.updateSrs(correction);
+
+        return CorrectionReviewResponse.from(correction, parseStringList(correction.getGrammarPoints()));
+    }
+
+    @Transactional
+    public void delete(Long userId, Long correctionId) {
+        int deleted = sentenceCorrectionMapper.deleteByIdAndUser(correctionId, userId);
+        if (deleted == 0) {
+            throw new BusinessException(Code.NOT_FOUND, "Correction not found");
+        }
     }
 
     private List<String> parseStringList(String json) {

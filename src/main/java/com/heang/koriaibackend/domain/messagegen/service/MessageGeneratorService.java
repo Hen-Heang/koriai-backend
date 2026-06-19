@@ -28,7 +28,12 @@ public class MessageGeneratorService {
             "Requesting Help",
             "Meeting Communication",
             "Deployment Updates",
-            "Bug Reports"
+            "Bug Reports",
+            "Requesting Time Off",
+            "Status Update to Manager",
+            "Declining a Request Politely",
+            "Apologizing for a Mistake",
+            "Scheduling a Meeting"
     );
 
     private final OpenAiService openAiService;

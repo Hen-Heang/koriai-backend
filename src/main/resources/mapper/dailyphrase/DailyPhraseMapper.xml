@@ -64,4 +64,10 @@
           AND user_id = #{userId}
     </update>
 
+    <delete id="deleteByIdAndUser">
+        DELETE FROM daily_phrases
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
 </mapper>

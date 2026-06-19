@@ -6,8 +6,11 @@ import com.heang.koriaibackend.domain.achievements.dto.LevelInfo;
 import com.heang.koriaibackend.domain.achievements.mapper.AchievementMapper;
 import com.heang.koriaibackend.domain.achievements.model.Achievement;
 import com.heang.koriaibackend.domain.achievements.model.UserAchievement;
+import com.heang.koriaibackend.domain.correction.mapper.SentenceCorrectionMapper;
 import com.heang.koriaibackend.domain.dashboard.mapper.DashboardMapper;
 import com.heang.koriaibackend.domain.listening.mapper.ListeningMapper;
+import com.heang.koriaibackend.domain.usage.mapper.ApiUsageLogMapper;
+import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,9 +31,14 @@ public class AchievementService {
             "Rookie", "Apprentice", "Practitioner", "Professional", "Expert", "Master"
     };
 
+    private static final List<String> LEVEL_ORDER = List.of("BEGINNER", "INTERMEDIATE", "ADVANCED");
+
     private final AchievementMapper achievementMapper;
     private final DashboardMapper dashboardMapper;
     private final ListeningMapper listeningMapper;
+    private final SentenceCorrectionMapper sentenceCorrectionMapper;
+    private final ApiUsageLogMapper apiUsageLogMapper;
+    private final UserMapper userMapper;
 
     /**
      * Evaluate the user's metrics and unlock any newly earned achievements.
@@ -89,6 +97,12 @@ public class AchievementService {
         int chat = achievementMapper.countChatMessages(userId);
         int listening = listeningMapper.countCompletedAttempts(userId);
         int streak = dashboardMapper.countStreakDays(userId);
+        int mistakesFixed = sentenceCorrectionMapper.countReviewed(userId);
+        int messageGen = apiUsageLogMapper.countByUserAndFeature(userId, "MESSAGE_GEN");
+        int dailyPhrase = apiUsageLogMapper.countByUserAndFeature(userId, "DAILY_PHRASE");
+        int level = userMapper.findById(userId)
+                .map(u -> Math.max(0, LEVEL_ORDER.indexOf(normalizeLevel(u.getKoreanLevel()))))
+                .orElse(0);
 
         Map<String, Integer> metrics = new HashMap<>();
         metrics.put("vocab", vocab);
@@ -97,7 +111,15 @@ public class AchievementService {
         metrics.put("listening", listening);
         metrics.put("streak", streak);
         metrics.put("activity", vocab + corrections + chat + listening);
+        metrics.put("mistakes_fixed", mistakesFixed);
+        metrics.put("message_gen", messageGen);
+        metrics.put("daily_phrase", dailyPhrase);
+        metrics.put("level", level);
         return metrics;
+    }
+
+    private static String normalizeLevel(String level) {
+        return level != null && LEVEL_ORDER.contains(level.toUpperCase()) ? level.toUpperCase() : "BEGINNER";
     }
 
     private Map<String, OffsetDateTime> unlockedMap(Long userId) {

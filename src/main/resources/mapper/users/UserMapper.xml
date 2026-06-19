@@ -91,6 +91,13 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateKoreanLevel">
+        UPDATE users
+        SET korean_level = #{koreanLevel},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
     <update id="updateStudyReminders">
         UPDATE users
         SET study_reminders_enabled = #{enabled},

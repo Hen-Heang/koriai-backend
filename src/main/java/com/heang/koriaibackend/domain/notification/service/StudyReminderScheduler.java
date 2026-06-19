@@ -21,7 +21,8 @@ import java.util.List;
  *
  * <ul>
  *   <li><b>Reviews due</b> — at the user's study hour, only when SRS cards are due
- *       ({@link StudyReminderMapper#findReviewsDueRecipients()}). Reviewing near
+ *       (vocab and/or mistake-review corrections combined,
+ *       {@link StudyReminderMapper#findReviewsDueRecipients()}). Reviewing near
  *       the due moment is the single biggest retention lever.</li>
  *   <li><b>Streak saver</b> — in the evening, only when a live streak has no
  *       activity yet today ({@link StudyReminderMapper#findStreakSaverRecipients()}).
@@ -59,11 +60,11 @@ public class StudyReminderScheduler {
             try {
                 int n = r.getDueCount();
                 String body = n == 1
-                        ? "1 word is ready to review — keep it fresh."
-                        : n + " words are ready to review — a quick session keeps them fresh.";
+                        ? "1 review is ready — keep it fresh."
+                        : n + " reviews are ready — a quick session keeps them fresh.";
                 pushDispatcher.dispatch(
                         r.getUserId(),
-                        new PushMessage("📚 Time to review", body, "/vocab"));
+                        new PushMessage("📚 Time to review", body, "/practice"));
                 studyReminderMapper.markReviewsDuePushed(r.getUserId());
             } catch (Exception e) {
                 log.warn("Failed reviews-due reminder for user {}: {}", r.getUserId(), e.getMessage());

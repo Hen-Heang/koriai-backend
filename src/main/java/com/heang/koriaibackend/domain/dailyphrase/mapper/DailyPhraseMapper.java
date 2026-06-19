@@ -20,4 +20,6 @@ public interface DailyPhraseMapper {
     List<String> findRecentPhrases(@Param("userId") Long userId, @Param("limit") int limit);
 
     int updateLearned(@Param("id") Long id, @Param("userId") Long userId, @Param("learned") boolean learned);
+
+    int deleteByIdAndUser(@Param("id") Long id, @Param("userId") Long userId);
 }

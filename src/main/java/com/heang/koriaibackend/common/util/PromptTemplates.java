@@ -13,6 +13,8 @@ public final class PromptTemplates {
         return v != null && !v.isBlank();
     }
 
+    private static final String FORMALITY_LABELS = "반말 (casual), 존댓말 (polite), or 격식체 (formal)";
+
     /**
      * A compact "about the learner" block built from the user's profile, used to
      * personalize prompts (examples, topics, difficulty, and native-language glosses).
@@ -86,6 +88,7 @@ public final class PromptTemplates {
                 Return ONLY valid JSON with this exact shape (no extra text):
                 {
                   "correctedText": "...",
+                  "rating": <integer 1-5 rating the ORIGINAL sentence's quality, 1 = needs work, 5 = native-like>,
                   "explanation": "Brief overall summary of corrections in English (1-2 sentences)",
                   "grammarPoints": ["Point 1 in English", "Point 2 in English"],
                   "changes": [
@@ -101,6 +104,7 @@ public final class PromptTemplates {
                 - "changes" must list EVERY individual correction made. If nothing was changed, return an empty array [].
                 - "original" and "corrected" should be short fragments (the specific part that changed), not the whole sentence.
                 - "reason" should teach the learner so they understand the rule, not just what changed.
+                - "rating" reflects how close the ORIGINAL (uncorrected) sentence was to native-like Korean: 5 means no or only trivial issues, 1 means major grammar/spelling problems throughout.
                 - All explanations must be in English to help Korean learners understand.
 
                 Correct and explain this Korean text:
@@ -144,7 +148,7 @@ public final class PromptTemplates {
                   "meaning": "Natural English meaning",
                   "romanization": "Revised Romanization of the phrase",
                   "whenToUse": "1-2 sentences in English describing the workplace situation where this is used",
-                  "formality": "Formality level in English (e.g. Formal business, Polite, Casual team chat)",
+                  "formality": "The Korean formality label — exactly one of %s — optionally followed by a short English gloss in parentheses, e.g. \"존댓말 (polite)\"",
                   "similarExpressions": [
                     { "phrase": "A similar Korean expression", "meaning": "Its English meaning" }
                   ]
@@ -153,7 +157,7 @@ public final class PromptTemplates {
                 - "phrase" must be natural Korean a real Korean developer would actually say or write.
                 - Provide 2-3 similar expressions. If none fit, return an empty array [].
                 - All explanations must be in English.
-                """.formatted(level, orDefault(avoidList, "(none)"));
+                """.formatted(level, orDefault(avoidList, "(none)"), FORMALITY_LABELS);
     }
 
     public static String messageGeneratorPrompt(String intent, String category, String level) {
@@ -169,7 +173,7 @@ public final class PromptTemplates {
                     {
                       "Korean": "The Korean message",
                       "romanization": "Revised Romanization",
-                      "formality": "Formality level in English (e.g. Formal business, Polite-standard, Casual team chat)",
+                      "formality": "The Korean formality label — exactly one of %s — optionally followed by a short English gloss in parentheses, e.g. \"존댓말 (polite)\"",
                       "situation": "Short English note on the best situation to use this version"
                     }
                   ],
@@ -179,7 +183,7 @@ public final class PromptTemplates {
                 - Provide exactly 3 variations ordered from most formal to most casual.
                 - Each "Korean" must be natural workplace Korean a real Korean developer would use.
                 - All explanations must be in English.
-                """.formatted(intent, orDefault(category, "General"), level);
+                """.formatted(intent, orDefault(category, "General"), level, FORMALITY_LABELS);
     }
 
     public static String listeningLessonPrompt(String topic, String level) {
@@ -307,7 +311,7 @@ public final class PromptTemplates {
                   "literalMeaning": "Word-for-word literal English meaning, even if it sounds unnatural",
                   "naturalMeaning": "What a Korean coworker actually means by this in plain English",
                   "businessContext": "2-4 sentences on the workplace situation, intent, and any implied action items or expectations",
-                  "politenessLevel": "Politeness/formality level in English (e.g. Formal honorific, Polite-standard, Casual team chat) and who it is appropriate for",
+                  "politenessLevel": "The Korean formality label — exactly one of %s — followed by a short English note on who it is appropriate for, e.g. \"존댓말 (polite) — appropriate for coworkers and clients\"",
                   "tone": "Short read of the emotional/social tone (e.g. neutral, urgent, friendly, passive-aggressive, apologetic)",
                   "breakdown": [
                     {
@@ -320,7 +324,7 @@ public final class PromptTemplates {
                     {
                       "Korean": "A natural Korean reply the engineer could send",
                       "English": "English translation of the reply",
-                      "formality": "Formality level of this reply in English"
+                      "formality": "The Korean formality label of this reply — exactly one of %s"
                     }
                   ]
                 }
@@ -332,7 +336,7 @@ public final class PromptTemplates {
 
                 Analyze this Korean workplace message:
                 %s
-                """.formatted(orDefault(source, "(unspecified)"), text);
+                """.formatted(orDefault(source, "(unspecified)"), FORMALITY_LABELS, FORMALITY_LABELS, text);
     }
 
 }

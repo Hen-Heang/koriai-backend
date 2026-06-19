@@ -95,6 +95,14 @@ public class DailyPhraseService {
     }
 
     @Transactional
+    public void delete(Long userId, Long id) {
+        int deleted = dailyPhraseMapper.deleteByIdAndUser(id, userId);
+        if (deleted == 0) {
+            throw new BusinessException(Code.NOT_FOUND, "Daily phrase not found");
+        }
+    }
+
+    @Transactional
     public VocabItemResponse addToFlashcards(Long userId, Long id) {
         DailyPhrase phrase = dailyPhraseMapper.findByIdAndUser(id, userId);
         if (phrase == null) {

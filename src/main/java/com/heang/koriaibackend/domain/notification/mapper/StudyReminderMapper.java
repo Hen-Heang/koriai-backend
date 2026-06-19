@@ -11,7 +11,8 @@ public interface StudyReminderMapper {
 
     /**
      * Users whose study hour (Seoul) has arrived, who haven't been reminded today,
-     * and who actually have SRS cards due. Drives the per-minute "reviews due" nudge.
+     * and who have SRS cards due — vocab and/or mistake-review corrections combined.
+     * Drives the per-minute "reviews due" nudge.
      */
     List<StudyReminderRecipient> findReviewsDueRecipients();
 

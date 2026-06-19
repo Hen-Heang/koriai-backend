@@ -9,6 +9,7 @@ import com.heang.koriaibackend.domain.vocab.dto.SentenceCheckResponse;
 import com.heang.koriaibackend.domain.vocab.dto.VocabItemResponse;
 import com.heang.koriaibackend.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,5 +58,11 @@ public class DailyPhraseController {
     public ApiResponse<SentenceCheckResponse> checkPractice(@PathVariable Long id,
                                                              @RequestBody SentenceCheckRequest request) {
         return ApiResponse.success(dailyPhraseService.checkPractice(SecurityUtils.currentUserId(), id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        dailyPhraseService.delete(SecurityUtils.currentUserId(), id);
+        return ApiResponse.success(null);
     }
 }

@@ -9,11 +9,16 @@
          late-evening Seoul session doesn't land on the wrong calendar day. -->
     <sql id="seoulToday">(NOW() AT TIME ZONE 'Asia/Seoul')::date</sql>
 
-    <!-- Any learning action counts as activity: corrections, chat messages,
-         vocab deck building, flashcard reviews, and listening practice. -->
+    <!-- Any learning action counts as activity: corrections (created or SRS-reviewed),
+         chat messages, vocab deck building, flashcard reviews, listening practice,
+         and any other AI feature use (daily phrase, analyzer, message generator,
+         goal task generation, ...) recorded in api_usage_logs. -->
     <sql id="activityDaysUnion">
         SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM sentence_corrections WHERE user_id = #{userId}
+        UNION
+        SELECT DISTINCT DATE(last_reviewed_at AT TIME ZONE 'Asia/Seoul') AS day
+        FROM sentence_corrections WHERE user_id = #{userId} AND last_reviewed_at IS NOT NULL
         UNION
         SELECT DISTINCT DATE(m.created_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM messages m JOIN conversations c ON m.conversation_id = c.id
@@ -27,6 +32,9 @@
         UNION
         SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day
         FROM listening_attempts WHERE user_id = #{userId}
+        UNION
+        SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day
+        FROM api_usage_logs WHERE user_id = #{userId}
     </sql>
 
     <select id="countCorrectionsThisWeek" resultType="int">
@@ -48,10 +56,16 @@
     </select>
 
     <select id="countReviewsToday" resultType="int">
-        SELECT COUNT(*) FROM vocab_cards
-        WHERE user_id = #{userId}
-          AND last_reviewed_at IS NOT NULL
-          AND DATE(last_reviewed_at AT TIME ZONE 'Asia/Seoul') = <include refid="seoulToday"/>
+        SELECT
+            (SELECT COUNT(*) FROM vocab_cards
+             WHERE user_id = #{userId}
+               AND last_reviewed_at IS NOT NULL
+               AND DATE(last_reviewed_at AT TIME ZONE 'Asia/Seoul') = <include refid="seoulToday"/>)
+            +
+            (SELECT COUNT(*) FROM sentence_corrections
+             WHERE user_id = #{userId}
+               AND last_reviewed_at IS NOT NULL
+               AND DATE(last_reviewed_at AT TIME ZONE 'Asia/Seoul') = <include refid="seoulToday"/>)
     </select>
 
     <select id="countCorrectionsToday" resultType="int">
@@ -61,9 +75,14 @@
     </select>
 
     <select id="countDueReviews" resultType="int">
-        SELECT COUNT(*) FROM vocab_cards
-        WHERE user_id = #{userId}
-          AND next_review_date &lt;= <include refid="seoulToday"/>
+        SELECT
+            (SELECT COUNT(*) FROM vocab_cards
+             WHERE user_id = #{userId}
+               AND next_review_date &lt;= <include refid="seoulToday"/>)
+            +
+            (SELECT COUNT(*) FROM sentence_corrections
+             WHERE user_id = #{userId}
+               AND next_review_date &lt;= <include refid="seoulToday"/>)
     </select>
 
     <!-- Forgiving streak: a single missed day does not break the chain
@@ -130,16 +149,25 @@
             WHERE c.user_id = #{userId} AND m.role = 'USER'
               AND m.created_at >= <include refid="seoulToday"/> - INTERVAL '6 days'
             GROUP BY 1
+        ),
+        other_usage AS (
+            SELECT DATE(created_at AT TIME ZONE 'Asia/Seoul') AS day, COUNT(*) AS cnt
+            FROM api_usage_logs
+            WHERE user_id = #{userId}
+              AND feature NOT IN ('CHAT', 'CORRECTION')
+              AND created_at >= <include refid="seoulToday"/> - INTERVAL '6 days'
+            GROUP BY 1
         )
         SELECT
             TO_CHAR(d.day, 'Dy') AS day,
-            COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) * 2 AS minutes,
-            CASE WHEN COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) > 0
+            COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) * 2 + COALESCE(o.cnt, 0) AS minutes,
+            CASE WHEN COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) + COALESCE(o.cnt, 0) > 0
                  THEN LEAST(100, 70 + COALESCE(cor.cnt, 0) * 5)
                  ELSE 0 END AS accuracy
         FROM days d
         LEFT JOIN messages m ON m.day = d.day
         LEFT JOIN corrections cor ON cor.day = d.day
+        LEFT JOIN other_usage o ON o.day = d.day
         ORDER BY d.day ASC
     </select>
 

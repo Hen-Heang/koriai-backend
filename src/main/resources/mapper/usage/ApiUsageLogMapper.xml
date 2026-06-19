@@ -24,4 +24,11 @@
             #{responseTimeMs}
         )
     </insert>
+
+    <select id="countByUserAndFeature" resultType="int">
+        SELECT COUNT(*)
+        FROM api_usage_logs
+        WHERE user_id = #{userId}
+          AND feature = #{feature}
+    </select>
 </mapper>

@@ -9,12 +9,24 @@
         <result property="userId" column="user_id"/>
         <result property="originalText" column="original_text"/>
         <result property="correctedText" column="corrected_text"/>
+        <result property="rating" column="rating"/>
         <result property="explanation" column="explanation"/>
         <result property="grammarPoints" column="grammar_points"/>
         <result property="changes" column="changes"/>
         <result property="modelUsed" column="model_used"/>
         <result property="createdAt" column="created_at"/>
+        <result property="mastery" column="mastery"/>
+        <result property="nextReviewDate" column="next_review_date"/>
+        <result property="easeFactor" column="ease_factor"/>
+        <result property="intervalDays" column="interval_days"/>
+        <result property="repetitions" column="repetitions"/>
+        <result property="lapses" column="lapses"/>
     </resultMap>
+
+    <sql id="allColumns">
+        id, user_id, original_text, corrected_text, rating, explanation, grammar_points, changes, model_used, created_at,
+        mastery, next_review_date, ease_factor, interval_days, repetitions, lapses
+    </sql>
 
     <insert id="insert" parameterType="com.heang.koriaibackend.domain.correction.model.SentenceCorrection"
             useGeneratedKeys="true" keyProperty="id">
@@ -22,6 +34,7 @@
             user_id,
             original_text,
             corrected_text,
+            rating,
             explanation,
             grammar_points,
             changes,
@@ -30,6 +43,7 @@
             #{userId},
             #{originalText},
             #{correctedText},
+            #{rating},
             #{explanation},
             CAST(#{grammarPoints} AS jsonb),
             CAST(#{changes} AS jsonb),
@@ -38,10 +52,51 @@
     </insert>
 
     <select id="findByUserId" resultMap="SentenceCorrectionResultMap">
-        SELECT id, user_id, original_text, corrected_text, explanation, grammar_points, changes, model_used, created_at
+        SELECT <include refid="allColumns"/>
         FROM sentence_corrections
         WHERE user_id = #{userId}
         ORDER BY created_at DESC
         LIMIT #{limit}
     </select>
+
+    <select id="findDueByUserId" resultMap="SentenceCorrectionResultMap">
+        SELECT <include refid="allColumns"/>
+        FROM sentence_corrections
+        WHERE user_id = #{userId}
+          AND next_review_date &lt;= CURRENT_DATE
+        ORDER BY next_review_date ASC
+    </select>
+
+    <select id="countReviewed" resultType="int">
+        SELECT COUNT(*)
+        FROM sentence_corrections
+        WHERE user_id = #{userId}
+          AND repetitions >= 1
+    </select>
+
+    <select id="findByIdAndUser" resultMap="SentenceCorrectionResultMap">
+        SELECT <include refid="allColumns"/>
+        FROM sentence_corrections
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </select>
+
+    <update id="updateSrs" parameterType="com.heang.koriaibackend.domain.correction.model.SentenceCorrection">
+        UPDATE sentence_corrections
+        SET mastery = #{mastery},
+            next_review_date = #{nextReviewDate},
+            ease_factor = #{easeFactor},
+            interval_days = #{intervalDays},
+            repetitions = #{repetitions},
+            lapses = #{lapses},
+            last_reviewed_at = NOW()
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByIdAndUser">
+        DELETE FROM sentence_corrections
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
 </mapper>

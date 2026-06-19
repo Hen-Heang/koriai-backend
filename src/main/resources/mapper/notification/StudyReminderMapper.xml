@@ -42,6 +42,10 @@
                     SELECT COUNT(*) FROM vocab_cards v
                     WHERE v.user_id = u.id
                       AND v.next_review_date &lt;= <include refid="seoulToday"/>
+                ) + (
+                    SELECT COUNT(*) FROM sentence_corrections sc
+                    WHERE sc.user_id = u.id
+                      AND sc.next_review_date &lt;= <include refid="seoulToday"/>
                 ) AS "dueCount"
             FROM users u
             WHERE COALESCE(u.study_reminders_enabled, true) = true
