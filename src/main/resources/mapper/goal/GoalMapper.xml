@@ -91,6 +91,7 @@
             description = #{description},
             target_date = #{targetDate},
             status      = #{status},
+            metadata    = CAST(#{metadata} AS jsonb),
             is_public   = #{publicGoal},
             ai_prompt   = #{aiPrompt},
             theme_id    = #{themeId},
