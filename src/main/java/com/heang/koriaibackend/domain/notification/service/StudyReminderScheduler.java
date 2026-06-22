@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -27,12 +30,19 @@ import java.util.List;
  *   <li><b>Streak saver</b> — in the evening, only when a live streak has no
  *       activity yet today ({@link StudyReminderMapper#findStreakSaverRecipients()}).
  *       Loss-aversion is the most effective habit trigger there is.</li>
+ *   <li><b>Exam countdown</b> — at the user's study hour, every day until the
+ *       K-Specialist speaking exam ({@link StudyReminderMapper#findExamCountdownRecipients()}).
+ *       Unconditional — the reminder itself is the point.</li>
  * </ul>
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class StudyReminderScheduler {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    /** K-Specialist speaking exam date — mirrors EXAM_DATE in the frontend's lib/study-plan.ts. */
+    private static final LocalDate EXAM_DATE = LocalDate.of(2026, 8, 29);
 
     private final StudyReminderMapper studyReminderMapper;
     private final DashboardMapper dashboardMapper;
@@ -43,6 +53,7 @@ public class StudyReminderScheduler {
     public void sendStudyReminders() {
         sendReviewsDue();
         sendStreakSavers();
+        sendExamCountdown();
     }
 
     private void sendReviewsDue() {
@@ -104,5 +115,39 @@ public class StudyReminderScheduler {
             }
         }
         log.info("Sent {} streak-saver reminder(s)", recipients.size());
+    }
+
+    private void sendExamCountdown() {
+        long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(SEOUL), EXAM_DATE);
+        // Stop nagging once the exam has passed — there's nothing left to count down to.
+        if (daysRemaining < 0) {
+            return;
+        }
+        List<StudyReminderRecipient> recipients;
+        try {
+            recipients = studyReminderMapper.findExamCountdownRecipients();
+        } catch (Exception e) {
+            log.warn("Exam-countdown scan failed: {}", e.getMessage());
+            return;
+        }
+        if (recipients.isEmpty()) {
+            return;
+        }
+        String body = daysRemaining == 0
+                ? "Exam day — 화이팅! Good luck today."
+                : daysRemaining == 1
+                        ? "Tomorrow is your K-Specialist exam — last day to prepare. Don't be lazy today."
+                        : "D-" + daysRemaining + " until your K-Specialist exam — don't be lazy, get a session in today.";
+        for (StudyReminderRecipient r : recipients) {
+            try {
+                pushDispatcher.dispatch(
+                        r.getUserId(),
+                        new PushMessage("🎯 K-Specialist exam countdown", body, "/interview"));
+                studyReminderMapper.markExamCountdownPushed(r.getUserId());
+            } catch (Exception e) {
+                log.warn("Failed exam-countdown reminder for user {}: {}", r.getUserId(), e.getMessage());
+            }
+        }
+        log.info("Sent {} exam-countdown reminder(s) (D-{})", recipients.size(), daysRemaining);
     }
 }

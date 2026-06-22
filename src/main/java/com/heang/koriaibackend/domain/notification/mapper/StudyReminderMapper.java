@@ -28,4 +28,14 @@ public interface StudyReminderMapper {
 
     /** Fire-once-per-Seoul-day stamp for the streak-saver nudge. */
     int markStreakSaverPushed(@Param("userId") Long userId);
+
+    /**
+     * Users whose study hour (Seoul) has arrived and who haven't been reminded
+     * today. Drives the per-minute "exam countdown" nudge — unconditional on
+     * activity, since the point is the reminder itself, not a due-count.
+     */
+    List<StudyReminderRecipient> findExamCountdownRecipients();
+
+    /** Fire-once-per-Seoul-day stamp for the exam-countdown nudge. */
+    int markExamCountdownPushed(@Param("userId") Long userId);
 }

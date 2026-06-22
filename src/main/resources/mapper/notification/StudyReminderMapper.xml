@@ -90,4 +90,24 @@
         UPDATE users SET streak_saver_pushed_on = <include refid="seoulToday"/> WHERE id = #{userId}
     </update>
 
+    <!--
+      Exam-countdown recipients: the user's study hour has arrived (Seoul) and
+      they haven't been reminded today. No activity/due-count gate — this nudge
+      should land every day regardless, right alongside the reviews-due check.
+      The exam-passed cutoff is applied in Java (StudyReminderScheduler), not here.
+    -->
+    <select id="findExamCountdownRecipients"
+            resultType="com.heang.koriaibackend.domain.notification.model.StudyReminderRecipient">
+        SELECT u.id AS "userId", 0 AS "dueCount"
+        FROM users u
+        WHERE COALESCE(u.study_reminders_enabled, true) = true
+          AND (u.exam_countdown_pushed_on IS NULL
+               OR u.exam_countdown_pushed_on &lt; <include refid="seoulToday"/>)
+          AND <include refid="seoulTimeOfDay"/> &gt;= make_time(COALESCE(u.study_reminder_hour, 20), 0, 0)
+    </select>
+
+    <update id="markExamCountdownPushed">
+        UPDATE users SET exam_countdown_pushed_on = <include refid="seoulToday"/> WHERE id = #{userId}
+    </update>
+
 </mapper>
