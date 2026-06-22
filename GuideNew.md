@@ -1,5 +1,37 @@
 # Build a Full-Stack SaaS Application: Korean Developer AI Coach
 
+## Implementation Status (as of 2026-06-22)
+
+This document is the original product vision/spec. Actual backend implementation has diverged in places — use `README.md` for the accurate, current API reference. Summary of where things stand:
+
+**Shipped, matches or extends the vision:**
+* Authentication, profile (incl. profile image, preferred AI model)
+* Vocabulary + spaced repetition (`/api/vocab`)
+* AI Workplace Korean Coach via chat (`/api/chat`, streaming SSE)
+* Daily Phrase of the Day (`/api/daily-phrase`)
+* Workplace Message Generator (`/api/message-generator`)
+* Listening Practice (`/api/listening`) — lessons + quiz attempts, no audio slow/normal toggle yet
+* Real Workplace Korean Analyzer (`/api/analyzer`)
+* Flashcards — folded into Vocabulary, not a separate module
+* Progress Dashboard (`/api/dashboard`)
+* Achievement System (`/api/achievements`)
+* Foundation lessons (`/api/foundations`) — not in original spec; covers structured beginner lesson tracks
+* Interview script builder (`/api/interview/scripts`) — not in original spec
+* Notes (`/api/notes`) — not in original spec
+* Reading units (`/api/reading/units`) — not in original spec; backed by Postgres, replacing static frontend data
+* Push notifications: Telegram, Web Push, FCM (`/api/push`, `/api/telegram`) — not in original spec
+* **Goals & collaborative planning** (`/api/goals`, `/api/tasks`, `/api/goal-themes`, `/api/goal-notifications`) — large module not in original spec: shareable goals, members/invites, themes, AI coach per goal, starring, tasks with scheduling
+
+**Not yet built:**
+* Meeting Simulator (Module 6) — standup/code-review/deployment/sprint-planning scenarios
+* Speaking Practice (Module 8) — voice recording, speech-to-text scoring
+* Khmer translation mode for vocab/flashcards
+* Gamification beyond achievements (XP/levels are partially modeled via achievements only)
+
+**Stack corrections vs. the spec below:** backend is actually **Java 17 / Spring Boot** with **MyBatis** (not JPA), see `README.md` Tech Stack table for the current, accurate versions.
+
+---
+
 ## Vision
 
 Create a modern AI-powered language learning platform specifically designed for foreign software engineers working in Korea.
