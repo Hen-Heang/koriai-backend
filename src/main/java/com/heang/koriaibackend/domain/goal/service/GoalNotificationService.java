@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -118,6 +119,12 @@ public class GoalNotificationService {
         } catch (Exception e) {
             log.warn("Failed to create self-notification (type={}, goalId={})", type, goalId, e);
         }
+    }
+
+    /** Housekeeping: purges read notifications older than the cutoff. Unread ones are kept regardless of age. */
+    @Transactional
+    public int cleanupRead(OffsetDateTime cutoff) {
+        return notificationMapper.deleteReadOlderThan(cutoff);
     }
 
     /** Map a self-notification type to a human-readable push payload. */

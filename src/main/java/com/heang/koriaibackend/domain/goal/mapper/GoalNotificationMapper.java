@@ -4,6 +4,7 @@ import com.heang.koriaibackend.domain.goal.model.GoalNotification;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,4 +24,7 @@ public interface GoalNotificationMapper {
     int updateInvitationStatus(@Param("id") UUID id,
                                @Param("receiverId") Long receiverId,
                                @Param("status") String status);
+
+    /** Housekeeping: removes read notifications older than the cutoff. Unread ones are kept regardless of age. */
+    int deleteReadOlderThan(@Param("cutoff") OffsetDateTime cutoff);
 }

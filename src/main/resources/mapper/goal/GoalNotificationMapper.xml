@@ -62,4 +62,9 @@
         WHERE id = #{id} AND receiver_id = #{receiverId}
     </update>
 
+    <delete id="deleteReadOlderThan">
+        DELETE FROM goal_notifications
+        WHERE read_at IS NOT NULL AND read_at &lt; #{cutoff}
+    </delete>
+
 </mapper>

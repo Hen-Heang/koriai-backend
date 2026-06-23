@@ -84,6 +84,12 @@ public class RefreshTokenService {
         refreshTokenMapper.revokeAllByUserId(userId);
     }
 
+    /** Housekeeping: purges expired/revoked rows. Returns the number deleted. */
+    @Transactional
+    public int cleanupExpired() {
+        return refreshTokenMapper.deleteExpired();
+    }
+
     private RefreshToken requireActive(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new BusinessException(Code.REFRESH_TOKEN_INVALID);
