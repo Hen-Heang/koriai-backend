@@ -38,6 +38,9 @@ public interface UserMapper {
                              @Param("enabled") boolean enabled,
                              @Param("hour") int hour);
 
+    /** Keeps the higher value — a submitted streak never lowers the stored best. */
+    int updateVocabBestStreakIfHigher(@Param("id") Long id, @Param("streak") int streak);
+
     int updateProfileImage(@Param("id") Long id,
                            @Param("contentType") String contentType,
                            @Param("data") byte[] data);

@@ -30,6 +30,7 @@ public class User {
     private boolean hasProfileImage;
     private boolean studyRemindersEnabled;
     private Integer studyReminderHour;
+    private int vocabBestStreak;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

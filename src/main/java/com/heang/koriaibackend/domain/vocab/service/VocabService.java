@@ -8,6 +8,7 @@ import com.heang.koriaibackend.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.util.PromptTemplates;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;
+import com.heang.koriaibackend.domain.vocab.dto.BestStreakResponse;
 import com.heang.koriaibackend.domain.vocab.dto.ImportVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SaveVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SentenceChallengeResponse;
@@ -50,6 +51,17 @@ public class VocabService {
         return vocabCardMapper.findDueByUserId(userId).stream()
                 .map(VocabItemResponse::from)
                 .toList();
+    }
+
+    public BestStreakResponse getBestStreak(Long userId) {
+        return new BestStreakResponse(userMapper.findById(userId).map(User::getVocabBestStreak).orElse(0));
+    }
+
+    /** A submitted streak only ever raises the stored best; returns the resulting best. */
+    @Transactional
+    public BestStreakResponse submitBestStreak(Long userId, int streak) {
+        userMapper.updateVocabBestStreakIfHigher(userId, streak);
+        return getBestStreak(userId);
     }
 
     @Transactional

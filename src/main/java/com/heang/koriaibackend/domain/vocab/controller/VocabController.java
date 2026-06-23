@@ -1,6 +1,7 @@
 package com.heang.koriaibackend.domain.vocab.controller;
 
 import com.heang.koriaibackend.common.api.ApiResponse;
+import com.heang.koriaibackend.domain.vocab.dto.BestStreakResponse;
 import com.heang.koriaibackend.domain.vocab.dto.ImportVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SaveVocabRequest;
 import com.heang.koriaibackend.domain.vocab.dto.SentenceChallengeResponse;
@@ -51,6 +52,17 @@ public class VocabController {
     @GetMapping("/review/due")
     public ApiResponse<List<VocabItemResponse>> getDueWords() {
         return ApiResponse.success(vocabService.getDueWords(SecurityUtils.currentUserId()));
+    }
+
+    // All-time best correct-streak in quiz/recall review mode, so it syncs across devices.
+    @GetMapping("/best-streak")
+    public ApiResponse<BestStreakResponse> getBestStreak() {
+        return ApiResponse.success(vocabService.getBestStreak(SecurityUtils.currentUserId()));
+    }
+
+    @PostMapping("/best-streak")
+    public ApiResponse<BestStreakResponse> submitBestStreak(@RequestParam int streak) {
+        return ApiResponse.success(vocabService.submitBestStreak(SecurityUtils.currentUserId(), streak));
     }
 
     @PostMapping("/{id}/review")
