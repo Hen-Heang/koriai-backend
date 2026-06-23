@@ -28,16 +28,28 @@ public class DashboardController {
         Long userId = SecurityUtils.currentUserId();
 
         int correctionsThisWeek = dashboardMapper.countCorrectionsThisWeek(userId);
-        int messagesThisWeek = dashboardMapper.countMessagesThisWeek(userId);
         int streakDays = dashboardMapper.countStreakDays(userId);
         int wordsSaved = dashboardMapper.countTotalWordsSaved(userId);
         int reviewsToday = dashboardMapper.countReviewsToday(userId);
         int correctionsToday = dashboardMapper.countCorrectionsToday(userId);
         int dueReviews = dashboardMapper.countDueReviews(userId);
 
-        int weeklyMinutes = messagesThisWeek + correctionsThisWeek * 2;
         // Daily goal: 5 flashcard reviews (20% each) OR 1 written sentence (100%).
         int dailyGoalProgress = Math.min(100, reviewsToday * 20 + correctionsToday * 100);
+
+        List<Map<String, Object>> raw = dashboardMapper.getDailyActivity(userId);
+        List<ProgressPoint> chartData = raw.stream()
+                .map(row -> new ProgressPoint(
+                        String.valueOf(row.get("day")),
+                        ((Number) row.getOrDefault("minutes", 0)).intValue(),
+                        ((Number) row.getOrDefault("accuracy", 0)).doubleValue()
+                ))
+                .toList();
+
+        // Derived from the same chart data shown to the user, rather than a
+        // separately-computed (and previously inconsistent — it omitted vocab
+        // review and listening activity) formula.
+        int weeklyMinutes = chartData.stream().mapToInt(ProgressPoint::minutes).sum();
 
         DashboardStats stats = new DashboardStats(
                 streakDays,
@@ -49,15 +61,6 @@ public class DashboardController {
                 correctionsToday,
                 dueReviews
         );
-
-        List<Map<String, Object>> raw = dashboardMapper.getDailyActivity(userId);
-        List<ProgressPoint> chartData = raw.stream()
-                .map(row -> new ProgressPoint(
-                        String.valueOf(row.get("day")),
-                        ((Number) row.getOrDefault("minutes", 0)).intValue(),
-                        ((Number) row.getOrDefault("accuracy", 0)).doubleValue()
-                ))
-                .toList();
 
         return ApiResponse.success(new DashboardResponse(stats, chartData));
     }
