@@ -2,11 +2,11 @@
 --
 -- Extends the "starting soon" reminder system (V24) with two more fire-once
 -- notifications driven by the same per-minute ReminderScheduler:
---   * due_soon_sent_at — task's daily_end_time is within the owner's reminder
+--   * due_soon_sent_at  — task's daily_end_time is within the owner's reminder
 --                         offset and hasn't passed yet ("⏳ Task due soon").
---   * overdue_sent_at — task's daily_end_time has passed, and it's still
+--   * overdue_sent_at    — task's daily_end_time has passed and it's still
 --                         incomplete ("⚠️ Task overdue").
--- Each is an independent dedupe guard, so a task can fire "due soon" and later
+-- Each is an independent dedupe guard so a task can fire "due soon" and later
 -- "overdue" exactly once each. Mirrors reminder_sent_at's contract.
 
 -- 1) Two more fire-once stamps on tasks.

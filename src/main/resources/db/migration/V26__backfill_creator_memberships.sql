@@ -1,5 +1,5 @@
 -- Backfill creator memberships for goals that have no membership row for their
--- owner. Natively created goals get a 'creator' goal_members row (GoalService),
+-- owner. Natively-created goals get a 'creator' goal_members row (GoalService),
 -- but goals migrated from the Orbit/Supabase data set were inserted without one,
 -- so owner-only actions (share-code regenerate, invite, remove member) 403'd.
 --
