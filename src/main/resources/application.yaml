@@ -1,6 +1,6 @@
 server:
   port: ${PORT:8080}
-  # Gzip JSON/text responses so payloads are smaller over the wire — meaningful
+  # Gzip JSON/text responses, so payloads are smaller over the wire — meaningful
   # on slower / distant connections. Only kicks in above 1 KB (tiny responses
   # aren't worth the CPU). Audio (audio/mpeg from TTS) is left uncompressed.
   compression:
@@ -79,9 +79,8 @@ app:
 #   bot-token: token from @BotFather
 #   bot-username: the bot's @name (without @), used to build t.me deep links
 #   webhook-secret: optional shared secret validated on the webhook header
-#   webhook-base-url: public HTTPS origin of THIS backend; the webhook is auto-
-#     registered with Telegram on startup at <base>/api/telegram/webhook. On
-#     Railway it defaults to RAILWAY_PUBLIC_DOMAIN (https:// is added if missing).
+#   webhook-base-url: public HTTPS origin of THIS backend; the webhook is auto-registered with Telegram on startup at <base>/api/telegram/webhook. On
+#     Railway, it defaults to RAILWAY_PUBLIC_DOMAIN (https:// is added if missing).
 telegram:
   bot-token: ${TELEGRAM_BOT_TOKEN:}
   bot-username: ${TELEGRAM_BOT_USERNAME:}

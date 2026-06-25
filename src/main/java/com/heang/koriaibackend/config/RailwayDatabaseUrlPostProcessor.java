@@ -1,5 +1,6 @@
 package com.heang.koriaibackend.config;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -18,7 +19,7 @@ import java.util.Map;
 public class RailwayDatabaseUrlPostProcessor implements EnvironmentPostProcessor {
 
     @Override
-    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+    public void postProcessEnvironment(ConfigurableEnvironment environment, @NonNull SpringApplication application) {
         String raw = environment.getProperty("DATABASE_URL");
         if (raw == null || raw.startsWith("jdbc:")) {
             return;

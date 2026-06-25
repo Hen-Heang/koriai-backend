@@ -1,18 +1,26 @@
 package com.heang.koriaibackend.common.util;
 
+// Static prompt library: one method per AI feature, each building one prompt
+// string to hand to OpenAiService. Pure string templating, no I/O.
 public final class PromptTemplates {
 
+    // Utility class: never instantiated, only static methods are used.
     private PromptTemplates() {
     }
 
+    // Returns fallback when value is null/blank, so prompts never end up
+    // with a literal "null" or empty gap where a field was missing.
     private static String orDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
     }
 
+    // Used to skip optional profile fields instead of feeding the model "unspecified" noise.
     private static boolean has(String v) {
         return v != null && !v.isBlank();
     }
 
+    // Shared wording for the 3 Korean speech levels, reused by every prompt that
+    // needs the model to label formality, so the phrasing stays consistent everywhere.
     private static final String FORMALITY_LABELS = "반말 (casual), 존댓말 (polite), or 격식체 (formal)";
 
     /**
@@ -21,6 +29,8 @@ public final class PromptTemplates {
      * Returns an empty string when no profile data is available. Only non-blank
      * fields are included, so the model isn't fed "unspecified" noise.
      */
+    // Builds a reusable snippet (not a full prompt) that other prompts splice in
+    // via %s, e.g. chatPrompt below. Only non-blank fields are included.
     public static String learnerProfileBlock(String country, String nativeLanguage,
                                              String occupation, Integer yearsOfExperience,
                                              String learningGoal) {
@@ -37,8 +47,8 @@ public final class PromptTemplates {
         }
         if (has(nativeLanguage)) {
             sb.append("- Native language: ").append(nativeLanguage)
-              .append(" — for hard words you may add a short gloss in ").append(nativeLanguage)
-              .append(" in addition to English.\n");
+                    .append(" — for hard words you may add a short gloss in ").append(nativeLanguage)
+                    .append(" in addition to English.\n");
         }
         if (has(country)) {
             sb.append("- From: ").append(country).append("\n");
@@ -52,12 +62,14 @@ public final class PromptTemplates {
                 %s""".formatted(sb.toString());
     }
 
+    // Main tutor chat prompt. Free-text reply (not JSON) since this feeds a
+    // conversational chat UI, not a structured form.
     public static String chatPrompt(String userMessage, String conversationType, String koreanLevel,
                                     String learnerName, String history, String learnerProfile) {
         return """
                 You are KoriAI, a warm, encouraging Korean language tutor and conversation coach.
                 You are helping %s, whose Korean level is %s. Conversation type: %s.
-
+                
                 Coaching style:
                 - Reply in clear, learner-friendly English. Keep it concise (2-5 sentences) unless more is asked.
                 - If the learner writes Korean with mistakes, gently correct it: show the corrected Korean, then briefly explain the fix in English.
@@ -67,21 +79,23 @@ public final class PromptTemplates {
                 - Acknowledge their effort first, then teach. Stay supportive and motivating.
                 - End with a short natural follow-up question in Korean (with its English translation) to keep them practicing.
                 - Use the conversation so far for context; do not repeat yourself or forget what was already said.
-
+                
                 %s
                 %s
-
+                
                 The learner just said:
                 %s
                 """.formatted(
-                        orDefault(learnerName, "the learner"),
-                        orDefault(koreanLevel, "unspecified"),
-                        conversationType,
-                        orDefault(learnerProfile, ""),
-                        orDefault(history, "(This is the start of the conversation.)"),
-                        userMessage);
+                orDefault(learnerName, "the learner"),
+                orDefault(koreanLevel, "unspecified"),
+                conversationType,
+                orDefault(learnerProfile, ""),
+                orDefault(history, "(This is the start of the conversation.)"),
+                userMessage);
     }
 
+    // Grammar/spelling correction. JSON output -> parsed via generateStructured
+    // into a typed result with per-fragment corrections and reasons.
     public static String correctionPrompt(String text) {
         return """
                 You are a Korean grammar and spelling correction assistant helping Korean learners improve their writing.
@@ -106,12 +120,13 @@ public final class PromptTemplates {
                 - "reason" should teach the learner so they understand the rule, not just what changed.
                 - "rating" reflects how close the ORIGINAL (uncorrected) sentence was to native-like Korean: 5 means no or only trivial issues, 1 means major grammar/spelling problems throughout.
                 - All explanations must be in English to help Korean learners understand.
-
+                
                 Correct and explain this Korean text:
                 %s
                 """.formatted(text);
     }
 
+    // Generates a batch of flashcards for a category/level. JSON array output.
     public static String vocabGenerationPrompt(String category, String level, int count) {
         return """
                 You are a Korean vocabulary teacher for foreign software engineers working in Korea.
@@ -136,6 +151,8 @@ public final class PromptTemplates {
                 """.formatted(count, category, level);
     }
 
+    // One daily phrase. avoidList is passed in so the model doesn't repeat
+    // recently shown phrases; uses the shared FORMALITY_LABELS for the formality field.
     public static String dailyPhrasePrompt(String level, String avoidList) {
         return """
                 You are a Korean workplace communication coach for foreign software engineers working at Korean tech companies.
@@ -148,7 +165,7 @@ public final class PromptTemplates {
                   "meaning": "Natural English meaning",
                   "romanization": "Revised Romanization of the phrase",
                   "whenToUse": "1-2 sentences in English describing the workplace situation where this is used",
-                  "formality": "The Korean formality label — exactly one of %s — optionally followed by a short English gloss in parentheses, e.g. \"존댓말 (polite)\"",
+                  "formality": "The Korean formality label — exactly one of %s — optionally followed by a short English gloss in parentheses, e.g. "존댓말 (polite)"",
                   "similarExpressions": [
                     { "phrase": "A similar Korean expression", "meaning": "Its English meaning" }
                   ]
@@ -160,6 +177,8 @@ public final class PromptTemplates {
                 """.formatted(level, orDefault(avoidList, "(none)"), FORMALITY_LABELS);
     }
 
+    // Gives 3 phrasings of the same intent across formality levels, so the
+    // learner can pick the right register for who they're talking to.
     public static String messageGeneratorPrompt(String intent, String category, String level) {
         return """
                 You are a Korean workplace messaging coach for foreign software engineers at Korean tech companies.
@@ -173,7 +192,7 @@ public final class PromptTemplates {
                     {
                       "Korean": "The Korean message",
                       "romanization": "Revised Romanization",
-                      "formality": "The Korean formality label — exactly one of %s — optionally followed by a short English gloss in parentheses, e.g. \"존댓말 (polite)\"",
+                      "formality": "The Korean formality label — exactly one of %s — optionally followed by a short English gloss in parentheses, e.g. "존댓말 (polite)"",
                       "situation": "Short English note on the best situation to use this version"
                     }
                   ],
@@ -186,6 +205,7 @@ public final class PromptTemplates {
                 """.formatted(intent, orDefault(category, "General"), level, FORMALITY_LABELS);
     }
 
+    // Builds a short multi-speaker dialogue plus a 4-option comprehension quiz for it.
     public static String listeningLessonPrompt(String topic, String level) {
         return """
                 You are a Korean listening-comprehension content creator for foreign software engineers at Korean tech companies.
@@ -214,6 +234,9 @@ public final class PromptTemplates {
                 """.formatted(topic, level);
     }
 
+    // Parses a raw pasted word list (e.g. from a textbook) into structured vocab
+    // entries. Asks the model to preserve the user's own translation verbatim
+    // while also adding its own English gloss ("meaningEn") for consistency.
     public static String vocabImportPrompt(String rawText) {
         return """
                 You are a Korean vocabulary list parser for a flashcard app.
@@ -235,12 +258,14 @@ public final class PromptTemplates {
                 - Use the section headers (명사/동사/형용사/부사) to set partOfSpeech when present; otherwise infer it.
                 - Skip lines that are headers, lesson titles, or not vocabulary entries.
                 - Do not invent entries that are not in the list.
-
+                
                 Parse this list:
                 %s
                 """.formatted(rawText);
     }
 
+    // Generates a writing challenge asking the learner to use a given word in
+    // a sentence; pairs with sentenceCheckPrompt below which grades the attempt.
     public static String sentenceChallengePrompt(String term, String meaning) {
         return """
                 You are a Korean language practice coach for foreign software engineers at Korean tech companies.
@@ -258,13 +283,15 @@ public final class PromptTemplates {
                 """.formatted(term, meaning);
     }
 
+    // Grades the learner's sentence attempt from sentenceChallengePrompt above:
+    // a 0-100 score, pass/fail at 60, a corrected version, and a teaching note.
     public static String sentenceCheckPrompt(String term, String meaning, String challengePrompt, String attempt) {
         return """
                 You are a Korean language coach evaluating a Korean learner's sentence.
                 The learner was asked: "%s"
                 Target Korean word: "%s" (meaning: %s)
                 Learner's attempt: "%s"
-
+                
                 Evaluate and return ONLY valid JSON with this exact shape (no extra text, no markdown fences):
                 {
                   "score": <integer 0-100>,
@@ -282,6 +309,8 @@ public final class PromptTemplates {
                 """.formatted(challengePrompt, term, meaning, attempt);
     }
 
+    // Quick dictionary-style lookup for a single word: short definition, one
+    // example sentence, and the Hanja root when the word is Sino-Korean.
     public static String wordLookupPrompt(String word) {
         return """
                 You are a Korean-English dictionary for Korean learners.
@@ -299,6 +328,9 @@ public final class PromptTemplates {
                 """.formatted(word);
     }
 
+    // Deep-dive analysis of a real message from a coworker: literal vs. intended
+    // meaning, social/business context, formality, fragment-by-fragment
+    // honorific breakdown, and suggested replies across formality levels.
     public static String analyzerPrompt(String text, String source) {
         return """
                 You are a Korean workplace communication analyst helping a foreign software engineer
@@ -311,7 +343,7 @@ public final class PromptTemplates {
                   "literalMeaning": "Word-for-word literal English meaning, even if it sounds unnatural",
                   "naturalMeaning": "What a Korean coworker actually means by this in plain English",
                   "businessContext": "2-4 sentences on the workplace situation, intent, and any implied action items or expectations",
-                  "politenessLevel": "The Korean formality label — exactly one of %s — followed by a short English note on who it is appropriate for, e.g. \"존댓말 (polite) — appropriate for coworkers and clients\"",
+                  "politenessLevel": "The Korean formality label — exactly one of %s — followed by a short English note on who it is appropriate for, e.g. "존댓말 (polite) — appropriate for coworkers and clients"",
                   "tone": "Short read of the emotional/social tone (e.g. neutral, urgent, friendly, passive-aggressive, apologetic)",
                   "breakdown": [
                     {
@@ -333,7 +365,7 @@ public final class PromptTemplates {
                 - Provide 2-3 "suggestedReplies" ranging across formality unless a reply would be inappropriate, then return [].
                 - Pay special attention to honorifics (-시-, -습니다, -드리다, 분, 님) and explain the social signal each sends.
                 - All explanations must be in English.
-
+                
                 Analyze this Korean workplace message:
                 %s
                 """.formatted(orDefault(source, "(unspecified)"), FORMALITY_LABELS, FORMALITY_LABELS, text);

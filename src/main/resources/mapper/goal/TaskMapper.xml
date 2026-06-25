@@ -151,8 +151,8 @@
     <!--
       Due-soon reminders. Same shape as findDueReminders but on the task's END
       instant: (date(end_date in tz) + daily_end_time) in tz. We warn once the
-      (end_instant - offset) window has opened but the deadline hasn't passed yet.
-      due_soon_sent_at dedupes; a missed cron minute self-heals on the next run.
+      (end_instant - offset) window has opened, but the deadline hasn't passed yet.
+      due_soon_sent_at dedupes; a missed cron minute self-healing on the next run.
     -->
     <select id="findDueSoonReminders" resultMap="DueTaskReminderMap">
         WITH computed AS (

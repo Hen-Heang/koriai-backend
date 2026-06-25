@@ -47,7 +47,7 @@ public class DashboardController {
                 .toList();
 
         // Derived from the same chart data shown to the user, rather than a
-        // separately-computed (and previously inconsistent — it omitted vocab
+        // separately computed (and previously inconsistent — it omitted vocab
         // review and listening activity) formula.
         int weeklyMinutes = chartData.stream().mapToInt(ProgressPoint::minutes).sum();
 

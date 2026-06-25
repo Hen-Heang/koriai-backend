@@ -58,7 +58,7 @@ public class OpenAiConfig {
         boolean hasEnvKey = envApiKey != null && !envApiKey.isBlank();
         boolean hasYamlKey = configuredApiKey != null && !configuredApiKey.isBlank();
 
-        // Log which source the key came from, to make debugging easier.
+        // Log which source the key came from to make debugging easier.
         if (hasEnvKey) {
             log.info("OpenAI key source detected: OPENAI_API_KEY environment variable");
         } else if (hasYamlKey) {
