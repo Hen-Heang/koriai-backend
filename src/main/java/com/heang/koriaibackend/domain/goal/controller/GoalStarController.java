@@ -2,7 +2,7 @@ package com.heang.koriaibackend.domain.goal.controller;
 
 import com.heang.koriaibackend.common.api.ApiResponse;
 import com.heang.koriaibackend.domain.goal.dto.GoalResponse;
-import com.heang.koriaibackend.domain.goal.service.GoalStarService;
+import com.heang.koriaibackend.domain.goal.service.GoalService;
 import com.heang.koriaibackend.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,17 +20,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GoalStarController {
 
-    private final GoalStarService starService;
+    private final GoalService goalService;
 
     @GetMapping("/starred")
     public ApiResponse<List<GoalResponse>> listStarred() {
-        return ApiResponse.success(starService.listStarred(SecurityUtils.currentUserId()));
+        return ApiResponse.success(goalService.listStarred(SecurityUtils.currentUserId()));
     }
 
     /** Toggle star/pin for a goal; returns the new state. */
     @PostMapping("/{goalId}/star")
     public ApiResponse<Map<String, Boolean>> toggleStar(@PathVariable UUID goalId) {
-        boolean starred = starService.toggle(SecurityUtils.currentUserId(), goalId);
+        boolean starred = goalService.toggle(SecurityUtils.currentUserId(), goalId);
         return ApiResponse.success(Map.of("isStarred", starred));
     }
 }

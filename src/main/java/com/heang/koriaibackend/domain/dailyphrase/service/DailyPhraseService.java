@@ -2,11 +2,12 @@ package com.heang.koriaibackend.domain.dailyphrase.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.common.ai.OpenAiService;
+import com.heang.koriaibackend.common.utils.JsonUtils;
+import com.heang.koriaibackend.common.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.common.api.Code;
-import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.common.utils.PromptTemplates;
 import com.heang.koriaibackend.domain.dailyphrase.dto.DailyPhraseResponse;
 import com.heang.koriaibackend.domain.dailyphrase.dto.SimilarExpression;
 import com.heang.koriaibackend.domain.dailyphrase.mapper.DailyPhraseMapper;

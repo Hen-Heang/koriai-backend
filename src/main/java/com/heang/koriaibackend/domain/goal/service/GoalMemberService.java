@@ -7,6 +7,7 @@ import com.heang.koriaibackend.domain.goal.dto.GoalResponse;
 import com.heang.koriaibackend.domain.goal.mapper.GoalMapper;
 import com.heang.koriaibackend.domain.goal.mapper.GoalMemberMapper;
 import com.heang.koriaibackend.domain.goal.model.Goal;
+import com.heang.koriaibackend.domain.goal.model.GoalRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class GoalMemberService {
-
-    private static final String ROLE_CREATOR = "creator";
-    private static final String ROLE_MEMBER = "member";
 
     private final GoalMapper goalMapper;
     private final GoalMemberMapper goalMemberMapper;
@@ -51,7 +49,7 @@ public class GoalMemberService {
         if (goal == null) {
             throw new BusinessException(Code.NOT_FOUND);
         }
-        goalMemberMapper.insertMember(goal.getId(), userId, ROLE_MEMBER);
+        goalMemberMapper.insertMember(goal.getId(), userId, GoalRole.MEMBER);
         return assembler.toResponse(goalMapper.findByIdEnriched(goal.getId(), userId));
     }
 
@@ -62,7 +60,7 @@ public class GoalMemberService {
         if (role == null) {
             throw new BusinessException(Code.NOT_FOUND);
         }
-        if (ROLE_CREATOR.equals(role)) {
+        if (GoalRole.CREATOR.equals(role)) {
             throw new BusinessException(Code.BAD_REQUEST, "The goal creator cannot leave the goal");
         }
         goalMemberMapper.deleteMember(goalId, userId);
@@ -71,7 +69,7 @@ public class GoalMemberService {
     /** Remove another member. Only the creator may do this, and not on themselves. */
     @Transactional
     public void removeMember(Long actingUserId, UUID goalId, Long targetUserId) {
-        if (!ROLE_CREATOR.equals(goalMemberMapper.findRole(goalId, actingUserId))) {
+        if (!GoalRole.CREATOR.equals(goalMemberMapper.findRole(goalId, actingUserId))) {
             throw new BusinessException(Code.INSUFFICIENT_PERMISSIONS);
         }
         if (actingUserId.equals(targetUserId)) {
@@ -84,7 +82,7 @@ public class GoalMemberService {
 
     @Transactional
     public UUID regenerateShareCode(Long userId, UUID goalId) {
-        if (!ROLE_CREATOR.equals(goalMemberMapper.findRole(goalId, userId))) {
+        if (!GoalRole.CREATOR.equals(goalMemberMapper.findRole(goalId, userId))) {
             throw new BusinessException(Code.INSUFFICIENT_PERMISSIONS);
         }
         UUID newCode = UUID.randomUUID();

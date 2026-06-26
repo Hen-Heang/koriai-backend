@@ -1,8 +1,7 @@
 package com.heang.koriaibackend.domain.note.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.common.api.Code;
+import com.heang.koriaibackend.common.utils.JsonUtils;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.domain.note.dto.NoteRequest;
 import com.heang.koriaibackend.domain.note.dto.NoteResponse;
@@ -20,7 +19,7 @@ import java.util.List;
 public class NoteService {
 
     private final NoteMapper noteMapper;
-    private final ObjectMapper objectMapper;
+    private final JsonUtils jsonUtils;
 
     public List<NoteResponse> list(Long userId) {
         return noteMapper.findMetaByUserId(userId).stream()

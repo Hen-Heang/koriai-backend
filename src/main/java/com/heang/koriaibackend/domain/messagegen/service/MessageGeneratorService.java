@@ -2,9 +2,9 @@ package com.heang.koriaibackend.domain.messagegen.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
-import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.common.ai.OpenAiService;
+import com.heang.koriaibackend.common.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.common.utils.PromptTemplates;
 import com.heang.koriaibackend.domain.messagegen.dto.GenerateMessageRequest;
 import com.heang.koriaibackend.domain.messagegen.dto.GenerateMessageResponse;
 import com.heang.koriaibackend.domain.messagegen.dto.MessageVariation;

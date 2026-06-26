@@ -7,6 +7,7 @@ import com.heang.koriaibackend.domain.goal.dto.GoalNotificationResponse;
 import com.heang.koriaibackend.domain.goal.mapper.GoalMemberMapper;
 import com.heang.koriaibackend.domain.goal.mapper.GoalNotificationMapper;
 import com.heang.koriaibackend.domain.goal.model.GoalNotification;
+import com.heang.koriaibackend.domain.goal.model.GoalRole;
 import com.heang.koriaibackend.domain.push.service.PushDispatcher;
 import com.heang.koriaibackend.domain.push.service.PushMessage;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +34,6 @@ public class GoalNotificationService {
     private static final String STATUS_PENDING = "pending";
     private static final String STATUS_ACCEPTED = "accepted";
     private static final String STATUS_DECLINED = "declined";
-    private static final String ROLE_MEMBER = "member";
-
     private final GoalNotificationMapper notificationMapper;
     private final GoalMemberMapper goalMemberMapper;
     private final PushDispatcher pushDispatcher;
@@ -94,7 +93,7 @@ public class GoalNotificationService {
         String status = accept ? STATUS_ACCEPTED : STATUS_DECLINED;
         notificationMapper.updateInvitationStatus(notificationId, userId, status);
         if (accept && n.getGoalId() != null) {
-            goalMemberMapper.insertMember(n.getGoalId(), userId, ROLE_MEMBER);
+            goalMemberMapper.insertMember(n.getGoalId(), userId, GoalRole.MEMBER);
         }
     }
 

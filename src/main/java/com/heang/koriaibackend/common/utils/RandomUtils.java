@@ -1,4 +1,4 @@
-package com.heang.koriaibackend.common.util;
+package com.heang.koriaibackend.common.utils;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;

@@ -1,6 +1,6 @@
 package com.heang.koriaibackend.domain.practice.service;
 
-import com.heang.koriaibackend.common.util.RandomUtils;
+import com.heang.koriaibackend.common.utils.RandomUtils;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionReviewResponse;
 import com.heang.koriaibackend.domain.correction.service.CorrectionService;
 import com.heang.koriaibackend.domain.dailyphrase.dto.DailyPhraseResponse;

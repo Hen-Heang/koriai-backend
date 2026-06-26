@@ -1,6 +1,6 @@
 package com.heang.koriaibackend.domain.usage.service;
 
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.common.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.domain.usage.mapper.ApiUsageLogMapper;
 import com.heang.koriaibackend.domain.usage.model.ApiUsageLog;
 import lombok.RequiredArgsConstructor;

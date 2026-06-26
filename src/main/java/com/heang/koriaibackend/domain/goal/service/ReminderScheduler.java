@@ -17,16 +17,16 @@ import java.util.function.Supplier;
 /**
  * Per-minute scheduled task reminders — the backend port of Orbit/goalmap's
  * {@code scheduled-reminders} edge function + pg_cron.
- *
- * Each run fans three kinds of task reminder out through the existing
+ * <p>
+ * Each run fans three kinds of a task reminder out through the existing
  * {@link PushDispatcher} (Telegram / web push / FCM), each with its own DB-level
  * fire-once dedupe so a missed minute self-heals on the next tick:
  * <ul>
  *   <li><b>Starting soon</b> — start is within the owner's reminder offset
  *       ({@link TaskMapper#findDueReminders()}, stamped {@code reminder_sent_at}).</li>
- *   <li><b>Due soon</b> — end (daily_end_time) is within the offset and not yet
+ *   <li><b>Due soon</b> — the end (daily_end_time) is within the offset and not yet
  *       passed ({@link TaskMapper#findDueSoonReminders()}, {@code due_soon_sent_at}).</li>
- *   <li><b>Overdue</b> — end has passed and the task is still incomplete
+ *   <li><b>Overdue</b> — the end has passed, and the task is still incomplete
  *       ({@link TaskMapper#findOverdueReminders()}, {@code overdue_sent_at}).</li>
  * </ul>
  */
@@ -38,7 +38,9 @@ public class ReminderScheduler {
     private final TaskMapper taskMapper;
     private final PushDispatcher pushDispatcher;
 
-    /** Runs at the top of every minute (server time). */
+    /**
+     * Runs at the top of every minute (server time).
+     */
     @Scheduled(cron = "0 * * * * *")
     public void sendDueReminders() {
         scan("starting-soon", taskMapper::findDueReminders, taskMapper::markReminderSent,
@@ -52,7 +54,7 @@ public class ReminderScheduler {
     /**
      * Runs one reminder scan: find candidates, push a "{title} {bodyPrefix}…{bodySuffix}"
      * message for each, and stamp it fired. Stamping happens regardless of delivery
-     * outcome — dispatch is best-effort and we must never remind for the same task twice.
+     * outcome — dispatch is best-effort, and we must never remind for the same task twice.
      */
     private void scan(String kind,
                       Supplier<List<DueTaskReminder>> finder,

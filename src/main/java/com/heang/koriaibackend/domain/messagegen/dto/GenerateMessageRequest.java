@@ -4,6 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 
 public record GenerateMessageRequest(
         @NotBlank String intent,
-        String category
+        @NotBlank String category
 ) {
 }

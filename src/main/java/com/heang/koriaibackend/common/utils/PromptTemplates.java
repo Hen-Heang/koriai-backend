@@ -1,4 +1,4 @@
-package com.heang.koriaibackend.common.util;
+package com.heang.koriaibackend.common.utils;
 
 // Static prompt library: one method per AI feature, each building one prompt
 // string to hand to OpenAiService. Pure string templating, no I/O.
@@ -30,7 +30,7 @@ public final class PromptTemplates {
      * fields are included, so the model isn't fed "unspecified" noise.
      */
     // Builds a reusable snippet (not a full prompt) that other prompts splice in
-    // via %s, e.g. chatPrompt below. Only non-blank fields are included.
+    // via %s, e.g., chatPrompt below. Only non-blank fields are included.
     public static String learnerProfileBlock(String country, String nativeLanguage,
                                              String occupation, Integer yearsOfExperience,
                                              String learningGoal) {

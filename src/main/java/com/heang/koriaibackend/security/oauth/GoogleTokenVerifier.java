@@ -15,11 +15,11 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Verifies Google ID tokens (signature, issuer, expiry and audience) using Google's
+ * Verifies Google ID tokens (signature, issuer, expiry, and audience) using Google's
  * published public keys, which the underlying verifier fetches and caches automatically.
  *
  * <p>The accepted audiences come from the {@code google.client-ids} property. If no client
- * IDs are configured the verifier fails closed (every token is rejected).
+ * IDs are configured, the verifier fails to closed (every token is rejected).
  */
 @Component
 public class GoogleTokenVerifier {

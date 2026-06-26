@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.heang.koriaibackend.domain.conversations.mapper.ConversationMapper">
+<mapper namespace="com.heang.koriaibackend.domain.chat.mapper.ConversationMapper">
 
-    <resultMap id="ConversationResultMap" type="com.heang.koriaibackend.domain.conversations.model.Conversation">
+    <resultMap id="ConversationResultMap" type="com.heang.koriaibackend.domain.chat.model.Conversation">
         <id property="id" column="id"/>
         <result property="userId" column="user_id"/>
         <result property="scenarioId" column="scenario_id"/>
@@ -20,7 +20,7 @@
         id, user_id, scenario_id, title, conversation_type, model_used, message_count, created_at, updated_at
     </sql>
 
-    <insert id="insert" parameterType="com.heang.koriaibackend.domain.conversations.model.Conversation"
+    <insert id="insert" parameterType="com.heang.koriaibackend.domain.chat.model.Conversation"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO conversations (
             user_id,

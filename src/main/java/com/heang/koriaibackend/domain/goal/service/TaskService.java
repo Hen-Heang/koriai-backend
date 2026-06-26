@@ -2,10 +2,11 @@ package com.heang.koriaibackend.domain.goal.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.common.ai.OpenAiService;
+import com.heang.koriaibackend.common.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.exception.BusinessException;
+import com.heang.koriaibackend.common.utils.DateTimeUtils;
 import com.heang.koriaibackend.domain.goal.dto.CreateTaskRequest;
 import com.heang.koriaibackend.domain.goal.dto.GenerateTasksRequest;
 import com.heang.koriaibackend.domain.goal.dto.TaskResponse;
@@ -31,9 +32,10 @@ import java.util.UUID;
 
 /**
  * Task CRUD with service-layer authorization (replacing Supabase RLS):
- *   a task is writable by its owner, or by the owner/members of its goal.
- *   a standalone task (null goal) is private to its owner.
+ *   a task is writable by its owner or by the owner/members of its goal.
+ *   A standalone task (null goal) is private to its owner.
  */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -65,7 +67,7 @@ public class TaskService {
         if (goalId != null) {
             requireGoalAccess(userId, goalId);
         }
-        return taskMapper.findRange(userId, goalId, parseTimestamp(from), parseTimestamp(to))
+        return taskMapper.findRange(userId, goalId, DateTimeUtils.parseTimestamp(from), DateTimeUtils.parseTimestamp(to))
                 .stream().map(TaskResponse::of).toList();
     }
 
@@ -82,8 +84,8 @@ public class TaskService {
                 .title(title)
                 .description(req.description())
                 .completed(Boolean.TRUE.equals(req.completed()))
-                .startDate(parseTimestamp(req.startDate()))
-                .endDate(parseTimestamp(req.endDate()))
+                .startDate(DateTimeUtils.parseTimestamp(req.startDate()))
+                .endDate(DateTimeUtils.parseTimestamp(req.endDate()))
                 .dailyStartTime(parseTime(req.dailyStartTime()))
                 .dailyEndTime(parseTime(req.dailyEndTime()))
                 .anytime(Boolean.TRUE.equals(req.isAnytime()))
@@ -163,8 +165,8 @@ public class TaskService {
         if (req.title() != null) task.setTitle(req.title().trim());
         if (req.description() != null) task.setDescription(req.description());
         if (req.completed() != null) task.setCompleted(req.completed());
-        if (req.startDate() != null) task.setStartDate(parseTimestamp(req.startDate()));
-        if (req.endDate() != null) task.setEndDate(parseTimestamp(req.endDate()));
+        if (req.startDate() != null) task.setStartDate(DateTimeUtils.parseTimestamp(req.startDate()));
+        if (req.endDate() != null) task.setEndDate(DateTimeUtils.parseTimestamp(req.endDate()));
         if (req.dailyStartTime() != null) task.setDailyStartTime(parseTime(req.dailyStartTime()));
         if (req.dailyEndTime() != null) task.setDailyEndTime(parseTime(req.dailyEndTime()));
         if (req.isAnytime() != null) task.setAnytime(req.isAnytime());
@@ -230,7 +232,7 @@ public class TaskService {
     private OffsetDateTime goalStart(Goal goal) {
         String startDate = metadataText(goal, "start_date", null);
         if (startDate != null) {
-            OffsetDateTime parsed = parseTimestamp(startDate);
+            OffsetDateTime parsed = DateTimeUtils.parseTimestamp(startDate);
             if (parsed != null) return parsed;
         }
         return goal.getCreatedAt() != null ? goal.getCreatedAt() : OffsetDateTime.now();
@@ -336,20 +338,7 @@ public class TaskService {
         String dailyEndTime;
     }
 
-    private OffsetDateTime parseTimestamp(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return OffsetDateTime.parse(value);
-        } catch (Exception e) {
-            try {
-                return OffsetDateTime.parse(value + "T00:00:00Z");
-            } catch (Exception ignored) {
-                throw new BusinessException(Code.BAD_REQUEST, "Invalid timestamp: " + value);
-            }
-        }
-    }
+
 
     private LocalTime parseTime(String value) {
         if (value == null || value.isBlank()) {

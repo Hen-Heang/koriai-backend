@@ -1,8 +1,7 @@
 package com.heang.koriaibackend.domain.reading.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.common.api.Code;
+import com.heang.koriaibackend.common.utils.JsonUtils;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.domain.reading.dto.ReadingGrammarNote;
 import com.heang.koriaibackend.domain.reading.dto.ReadingParagraph;
@@ -24,7 +23,7 @@ import java.util.List;
 public class ReadingUnitService {
 
     private final ReadingUnitMapper readingUnitMapper;
-    private final ObjectMapper objectMapper;
+    private final JsonUtils jsonUtils;
 
     public List<ReadingUnitResponse> list(Long userId) {
         return readingUnitMapper.findUnitsByUserId(userId).stream()

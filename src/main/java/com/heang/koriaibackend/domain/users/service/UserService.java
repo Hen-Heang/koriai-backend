@@ -21,6 +21,7 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+
     public boolean existsByEmail(String email) {
 
         return userMapper.findByEmail(email.trim().toLowerCase()).isPresent();
@@ -28,11 +29,10 @@ public class UserService {
 
     @Transactional
     public User create(CreateUserRequest req) {
-//   set to lowercase -> email validation
-    String email = req.email().trim().toLowerCase();
-    if (existsByEmail(email)) {
-        throw new IllegalArgumentException(Code.EMAIL_ALREADY_EXISTS.getMessage());
-    }
+        String email = req.email().trim().toLowerCase();
+        if (existsByEmail(email)) {
+            throw new IllegalArgumentException(Code.EMAIL_ALREADY_EXISTS.getMessage());
+        }
         User user = User.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(req.password()))

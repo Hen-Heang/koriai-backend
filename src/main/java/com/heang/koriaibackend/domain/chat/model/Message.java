@@ -1,4 +1,4 @@
-package com.heang.koriaibackend.domain.messages.model;
+package com.heang.koriaibackend.domain.chat.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

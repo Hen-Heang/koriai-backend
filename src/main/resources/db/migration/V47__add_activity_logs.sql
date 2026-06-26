@@ -1,5 +1,5 @@
 -- Stores real time-on-page measurements sent from the frontend (useSessionTimer).
--- Each row = one page visit, logged when the user navigates away.
+-- Each row = a one-page visit, logged when the user navigates away.
 CREATE TABLE activity_logs (
     id          BIGSERIAL PRIMARY KEY,
     user_id     BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,

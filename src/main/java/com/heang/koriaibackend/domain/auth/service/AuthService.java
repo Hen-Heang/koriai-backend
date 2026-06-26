@@ -33,6 +33,7 @@ public class AuthService {
     @Value("${openai.model:gpt-5-mini}")
     private String defaultPreferredModel;
 
+
     @Transactional
     public AuthResponse register(RegisterRequest req) {
         String email = req.email().trim().toLowerCase();
@@ -97,13 +98,17 @@ public class AuthService {
         return AuthResponse.of(accessToken, rotation.refreshToken(), user);
     }
 
-    /** Revokes the presented refresh token so it can no longer be used (logout). */
+    /**
+     * Revokes the presented refresh token so it can no longer be used (logout).
+     */
     @Transactional
     public void logout(RefreshTokenRequest req) {
         refreshTokenService.revoke(req.refreshToken());
     }
 
-    /** Issues a fresh access token + a new refresh token for an authenticated user. */
+    /**
+     * Issues a fresh access token + a new refresh token for an authenticated user.
+     */
     private AuthResponse issueTokens(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
         String refreshToken = refreshTokenService.issue(user.getId());

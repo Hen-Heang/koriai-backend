@@ -1,7 +1,7 @@
 package com.heang.koriaibackend.domain.goal.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
+import com.heang.koriaibackend.common.ai.OpenAiService;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.domain.goal.dto.CoachStreamRequest;

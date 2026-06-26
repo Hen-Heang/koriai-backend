@@ -1,10 +1,9 @@
 package com.heang.koriaibackend.domain.correction.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.OpenAiService.StructuredAiResult;
-import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.common.ai.OpenAiService;
+import com.heang.koriaibackend.common.utils.JsonUtils;
+import com.heang.koriaibackend.common.ai.OpenAiService.StructuredAiResult;
+import com.heang.koriaibackend.common.utils.PromptTemplates;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.domain.correction.dto.CorrectionChange;
@@ -31,7 +30,7 @@ public class CorrectionService {
     private final SentenceCorrectionMapper sentenceCorrectionMapper;
     private final OpenAiService openAiService;
     private final ApiUsageLogService apiUsageLogService;
-    private final ObjectMapper objectMapper;
+    private final JsonUtils jsonUtils;
 
     @Value("${openai.model:gpt-5-mini}")
     private String model;
@@ -54,8 +53,8 @@ public class CorrectionService {
                 .correctedText(r.correctedText != null ? r.correctedText : text)
                 .rating(r.rating)
                 .explanation(r.explanation)
-                .grammarPoints(toJson(grammarPoints))
-                .changes(toJson(changes))
+                .grammarPoints(jsonUtils.toJsonSafe(grammarPoints))
+                .changes(jsonUtils.toJsonSafe(changes))
                 .modelUsed(result.meta().model())
                 .build();
         sentenceCorrectionMapper.insert(correction);

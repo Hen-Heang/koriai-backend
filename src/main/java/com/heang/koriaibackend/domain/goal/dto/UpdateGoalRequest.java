@@ -10,8 +10,6 @@ public record UpdateGoalRequest(
         @Size(max = 500) String title,
         String description,
         String targetDate,
-//        Boolean noDuration,
-//        String status,
         Boolean isPublic,
         JsonNode metadata
 ) {

@@ -1,4 +1,4 @@
-package com.heang.koriaibackend.ai.dto;
+package com.heang.koriaibackend.common.ai.dto;
 
 public record OpenAiResult(
         String content,

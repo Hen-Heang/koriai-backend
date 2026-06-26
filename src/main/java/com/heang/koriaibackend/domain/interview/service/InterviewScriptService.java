@@ -1,8 +1,7 @@
 package com.heang.koriaibackend.domain.interview.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heang.koriaibackend.common.api.Code;
+import com.heang.koriaibackend.common.utils.JsonUtils;
 import com.heang.koriaibackend.common.exception.BusinessException;
 import com.heang.koriaibackend.domain.interview.dto.InterviewScriptResponse;
 import com.heang.koriaibackend.domain.interview.mapper.InterviewScriptMapper;
@@ -19,7 +18,7 @@ import java.util.Map;
 public class InterviewScriptService {
 
     private final InterviewScriptMapper interviewScriptMapper;
-    private final ObjectMapper objectMapper;
+    private final JsonUtils jsonUtils;
 
     /** Returns the saved script for this topic, or null if nothing is stored yet. */
     public InterviewScriptResponse getScript(Long userId, String topicId) {
@@ -32,7 +31,7 @@ public class InterviewScriptService {
         InterviewScript script = InterviewScript.builder()
                 .userId(userId)
                 .topicId(topicId)
-                .sections(toJson(sections == null ? Collections.emptyMap() : sections))
+                .sections(jsonUtils.toJson(sections == null ? Collections.emptyMap() : sections))
                 .build();
         interviewScriptMapper.upsert(script);
         return toResponse(interviewScriptMapper.findByUserAndTopic(userId, topicId));

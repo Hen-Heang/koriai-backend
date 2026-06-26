@@ -1,10 +1,9 @@
 package com.heang.koriaibackend.domain.analyzer.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.OpenAiService.StructuredAiResult;
-import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.common.ai.OpenAiService;
+import com.heang.koriaibackend.common.utils.JsonUtils;
+import com.heang.koriaibackend.common.ai.OpenAiService.StructuredAiResult;
+import com.heang.koriaibackend.common.utils.PromptTemplates;
 import com.heang.koriaibackend.domain.analyzer.dto.AnalysisBreakdownItem;
 import com.heang.koriaibackend.domain.analyzer.dto.AnalysisResult;
 import com.heang.koriaibackend.domain.analyzer.dto.MessageAnalysisResponse;
@@ -27,7 +26,7 @@ public class AnalyzerService {
     private final MessageAnalysisMapper messageAnalysisMapper;
     private final OpenAiService openAiService;
     private final ApiUsageLogService apiUsageLogService;
-    private final ObjectMapper objectMapper;
+    private final JsonUtils jsonUtils;
 
     @Value("${openai.model:gpt-5-mini}")
     private String model;
@@ -56,8 +55,8 @@ public class AnalyzerService {
                 .businessContext(r.businessContext)
                 .politenessLevel(r.politenessLevel)
                 .tone(r.tone)
-                .breakdown(toJson(breakdown))
-                .suggestedReplies(toJson(replies))
+                .breakdown(jsonUtils.toJsonSafe(breakdown))
+                .suggestedReplies(jsonUtils.toJsonSafe(replies))
                 .modelUsed(result.meta().model())
                 .build();
         messageAnalysisMapper.insert(analysis);
@@ -73,32 +72,10 @@ public class AnalyzerService {
     }
 
     private List<AnalysisBreakdownItem> parseBreakdown(String json) {
-        if (json == null || json.isBlank()) {
-            return Collections.emptyList();
-        }
-        try {
-            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, AnalysisBreakdownItem.class));
-        } catch (JsonProcessingException e) {
-            return Collections.emptyList();
-        }
+        return jsonUtils.parseList(json, AnalysisBreakdownItem.class);
     }
 
     private List<SuggestedReply> parseReplies(String json) {
-        if (json == null || json.isBlank()) {
-            return Collections.emptyList();
-        }
-        try {
-            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, SuggestedReply.class));
-        } catch (JsonProcessingException e) {
-            return Collections.emptyList();
-        }
-    }
-
-    private <T> String toJson(List<T> values) {
-        try {
-            return objectMapper.writeValueAsString(values == null ? Collections.emptyList() : values);
-        } catch (JsonProcessingException e) {
-            return "[]";
-        }
+        return jsonUtils.parseList(json, SuggestedReply.class);
     }
 }

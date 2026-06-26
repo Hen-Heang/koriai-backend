@@ -1,6 +1,6 @@
 package com.heang.koriaibackend.domain.scenarios.service;
 
-import com.heang.koriaibackend.common.util.RandomUtils;
+import com.heang.koriaibackend.common.utils.RandomUtils;
 import com.heang.koriaibackend.domain.scenarios.dto.ScenarioResponse;
 import org.springframework.stereotype.Service;
 

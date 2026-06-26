@@ -1,17 +1,17 @@
 package com.heang.koriaibackend.domain.chat.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heang.koriaibackend.ai.OpenAiService;
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.common.ai.OpenAiService;
+import com.heang.koriaibackend.common.ai.dto.OpenAiResult;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.exception.BusinessException;
-import com.heang.koriaibackend.common.util.PromptTemplates;
+import com.heang.koriaibackend.common.utils.PromptTemplates;
 import com.heang.koriaibackend.domain.chat.dto.ChatSendResponse;
 import com.heang.koriaibackend.domain.chat.dto.CreateChatConversationRequest;
-import com.heang.koriaibackend.domain.conversations.mapper.ConversationMapper;
-import com.heang.koriaibackend.domain.conversations.model.Conversation;
-import com.heang.koriaibackend.domain.messages.mapper.MessageMapper;
-import com.heang.koriaibackend.domain.messages.model.Message;
+import com.heang.koriaibackend.domain.chat.mapper.ConversationMapper;
+import com.heang.koriaibackend.domain.chat.model.Conversation;
+import com.heang.koriaibackend.domain.chat.mapper.MessageMapper;
+import com.heang.koriaibackend.domain.chat.model.Message;
 import com.heang.koriaibackend.domain.usage.service.ApiUsageLogService;
 import com.heang.koriaibackend.domain.users.mapper.UserMapper;
 import com.heang.koriaibackend.domain.users.model.User;

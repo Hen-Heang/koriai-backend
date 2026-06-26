@@ -1,6 +1,6 @@
-package com.heang.koriaibackend.ai;
+package com.heang.koriaibackend.common.ai;
 
-import com.heang.koriaibackend.ai.dto.OpenAiResult;
+import com.heang.koriaibackend.common.ai.dto.OpenAiResult;
 import com.openai.client.OpenAIClient;
 import com.openai.core.RequestOptions;
 import com.openai.core.http.StreamResponse;

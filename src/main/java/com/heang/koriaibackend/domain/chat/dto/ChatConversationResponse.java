@@ -1,6 +1,6 @@
 package com.heang.koriaibackend.domain.chat.dto;
 
-import com.heang.koriaibackend.domain.conversations.model.Conversation;
+import com.heang.koriaibackend.domain.chat.model.Conversation;
 
 import java.time.OffsetDateTime;
 

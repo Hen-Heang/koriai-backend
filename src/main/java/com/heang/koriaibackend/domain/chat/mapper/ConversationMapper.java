@@ -1,6 +1,6 @@
-package com.heang.koriaibackend.domain.conversations.mapper;
+package com.heang.koriaibackend.domain.chat.mapper;
 
-import com.heang.koriaibackend.domain.conversations.model.Conversation;
+import com.heang.koriaibackend.domain.chat.model.Conversation;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
