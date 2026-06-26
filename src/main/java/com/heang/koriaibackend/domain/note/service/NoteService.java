@@ -1,5 +1,6 @@
 package com.heang.koriaibackend.domain.note.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.utils.JsonUtils;
 import com.heang.koriaibackend.common.exception.BusinessException;
@@ -10,6 +11,7 @@ import com.heang.koriaibackend.domain.note.model.Note;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +22,8 @@ public class NoteService {
 
     private final NoteMapper noteMapper;
     private final JsonUtils jsonUtils;
+    private final ObjectMapper objectMapper;
+
 
     public List<NoteResponse> list(Long userId) {
         return noteMapper.findMetaByUserId(userId).stream()

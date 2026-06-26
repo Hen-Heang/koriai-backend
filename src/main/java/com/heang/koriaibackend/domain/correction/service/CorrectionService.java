@@ -1,5 +1,6 @@
 package com.heang.koriaibackend.domain.correction.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.heang.koriaibackend.common.ai.OpenAiService;
 import com.heang.koriaibackend.common.utils.JsonUtils;
 import com.heang.koriaibackend.common.ai.OpenAiService.StructuredAiResult;
@@ -31,6 +32,7 @@ public class CorrectionService {
     private final OpenAiService openAiService;
     private final ApiUsageLogService apiUsageLogService;
     private final JsonUtils jsonUtils;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Value("${openai.model:gpt-5-mini}")
     private String model;

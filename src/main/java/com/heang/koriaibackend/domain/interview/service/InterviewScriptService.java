@@ -1,5 +1,6 @@
 package com.heang.koriaibackend.domain.interview.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.heang.koriaibackend.common.api.Code;
 import com.heang.koriaibackend.common.utils.JsonUtils;
 import com.heang.koriaibackend.common.exception.BusinessException;
@@ -19,6 +20,7 @@ public class InterviewScriptService {
 
     private final InterviewScriptMapper interviewScriptMapper;
     private final JsonUtils jsonUtils;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     /** Returns the saved script for this topic, or null if nothing is stored yet. */
     public InterviewScriptResponse getScript(Long userId, String topicId) {
