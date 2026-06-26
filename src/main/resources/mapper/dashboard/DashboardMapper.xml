@@ -200,18 +200,28 @@
             FROM foundation_progress WHERE user_id = #{userId} AND last_attempt_at IS NOT NULL
               AND last_attempt_at >= <include refid="seoulToday"/> - INTERVAL '6 days'
             GROUP BY 1
+        ),
+        <!-- Real time-on-page from the frontend useSessionTimer hook.
+             Prefer this over the count-based proxy; falls back to 0 for days
+             before activity_logs existed (honest — we simply didn't track then). -->
+        real_minutes AS (
+            SELECT DATE(logged_at AT TIME ZONE 'Asia/Seoul') AS day,
+                   LEAST(480, SUM(duration_ms) / 60000) AS minutes
+            FROM activity_logs
+            WHERE user_id = #{userId}
+              AND logged_at >= <include refid="seoulToday"/> - INTERVAL '6 days'
+            GROUP BY 1
         )
         SELECT
             TO_CHAR(d.day, 'Dy') AS day,
-            COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) * 2 + COALESCE(o.cnt, 0)
-                + COALESCE(v.cnt, 0) + COALESCE(l.cnt, 0)
-                + COALESCE(r.cnt, 0) + COALESCE(f.cnt, 0) AS minutes,
+            COALESCE(rm.minutes, 0) AS minutes,
             CASE WHEN COALESCE(m.cnt, 0) + COALESCE(cor.cnt, 0) + COALESCE(o.cnt, 0)
                       + COALESCE(v.cnt, 0) + COALESCE(l.cnt, 0)
                       + COALESCE(r.cnt, 0) + COALESCE(f.cnt, 0) > 0
                  THEN LEAST(100, 70 + COALESCE(cor.cnt, 0) * 5)
                  ELSE 0 END AS accuracy
         FROM days d
+        LEFT JOIN real_minutes rm ON rm.day = d.day
         LEFT JOIN messages m ON m.day = d.day
         LEFT JOIN corrections cor ON cor.day = d.day
         LEFT JOIN other_usage o ON o.day = d.day
