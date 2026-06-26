@@ -4,9 +4,9 @@ WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 RUN chmod +x mvnw
-RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -q
+RUN --mount=type=cache,id=mvn,target=/root/.m2 ./mvnw dependency:go-offline -q
 COPY src/ src/
-RUN --mount=type=cache,target=/root/.m2 ./mvnw package -DskipTests -q
+RUN --mount=type=cache,id=mvn,target=/root/.m2 ./mvnw package -DskipTests -q
 
 # Run stage
 FROM eclipse-temurin:17-jre-alpine
