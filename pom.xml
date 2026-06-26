@@ -96,13 +96,6 @@
             <version>1.78.1</version>
         </dependency>
 
-        <!-- Firebase Cloud Messaging (FCM) for phone/mobile push -->
-        <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>9.4.1</version>
-        </dependency>
-
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>

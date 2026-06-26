@@ -1,16 +1,19 @@
 server:
   port: ${PORT:8080}
-  # Gzip JSON/text responses, so payloads are smaller over the wire — meaningful
-  # on slower / distant connections. Only kicks in above 1 KB (tiny responses
-  # aren't worth the CPU). Audio (audio/mpeg from TTS) is left uncompressed.
   compression:
     enabled: true
     mime-types: application/json,text/plain,text/css,text/html,application/javascript
     min-response-size: 1024
+  tomcat:
+    threads:
+      max: ${TOMCAT_MAX_THREADS:20}
+      min-spare: ${TOMCAT_MIN_SPARE_THREADS:5}
 
 spring:
   application:
     name: koriai-backend
+  main:
+    lazy-initialization: true
   servlet:
     multipart:
       # Profile image uploads are capped at 2 MB in UserController; give a small
@@ -27,8 +30,8 @@ spring:
     # instead of blocking the request thread; keep-warm idle connections avoid
     # cold-connect latency on the first query after a quiet period.
     hikari:
-      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
-      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
+      minimum-idle: ${DB_POOL_MIN_IDLE:1}
       connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:10000}
       idle-timeout: 300000
       max-lifetime: 1200000
@@ -47,6 +50,12 @@ openai:
   base-url: https://api.openai.com/v1
   model: gpt-5-mini
   mock-enabled: ${OPENAI_MOCK_ENABLED:false}
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -96,8 +105,3 @@ webpush:
     private-key: ${VAPID_PRIVATE_KEY:}
     subject: ${VAPID_SUBJECT:mailto:admin@koriai.app}
 
-# Firebase Cloud Messaging (FCM) for phone push. The channel self-disables when
-# credentials are blank. Set the entire service-account JSON (single line) in
-# FIREBASE_CREDENTIALS (Firebase console -> Project settings -> Service accounts).
-firebase:
-  credentials: ${FIREBASE_CREDENTIALS:}
